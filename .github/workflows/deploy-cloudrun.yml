@@ -1,0 +1,124 @@
+name: Deploy to Cloud Run
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Ruta: Cloud Run + Cloud SQL PostgreSQL + Secret Manager + WIF.
+# Se dispara automáticamente tras Build & Push exitoso en main o docker.
+# También disponible como workflow_dispatch para deploys manuales.
+# ─────────────────────────────────────────────────────────────────────────────
+on:
+  workflow_run:
+    workflows: ["Build & Push Docker image"]
+    types: [completed]
+    branches: [main, docker]
+
+  # Activación manual (útil para redeploy sin push)
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: "Deploy Cloud Run"
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write   # Necesario para WIF
+      packages: read    # Para pull de imagen desde GHCR
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      # Autenticación WIF — sin JSON keys en repositorio ni en secrets
+      - name: Autenticar en Google Cloud (WIF)
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+
+      - name: Setup gcloud CLI
+        uses: google-github-actions/setup-gcloud@v2
+
+      # Cloud Run solo acepta imágenes de GCR, Artifact Registry o Docker Hub.
+      # La imagen viene de GHCR (build-push.yml) → se copia a Artifact Registry aquí.
+      - name: Login a GHCR (para pull de imagen)
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configurar Docker para Artifact Registry
+        run: gcloud auth configure-docker ${{ secrets.GCP_REGION }}-docker.pkg.dev --quiet
+
+      # Deploy a Cloud Run
+      # Los secretos se leen de Secret Manager en tiempo de inicio del container.
+      # El código de la app lee os.environ.get() sin ningún cambio.
+      - name: Copiar imagen GHCR → Artifact Registry y deploy
+        env:
+          # workflow_run: usa el SHA del build que disparó el deploy
+          # workflow_dispatch: usa el SHA del commit actual (HEAD)
+          SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+          PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          REGION: ${{ secrets.GCP_REGION }}          # ej: southamerica-east1
+          SERVICE: rur-app
+          SA_EMAIL: ${{ secrets.CLOUD_RUN_SA_EMAIL }} # rur-app-sa@PROJECT.iam.gserviceaccount.com
+          CLOUD_SQL_INSTANCE: ${{ secrets.CLOUD_SQL_INSTANCE }} # PROJECT:REGION:INSTANCE
+        run: |
+          SHORT_SHA=$(echo "$SHA" | cut -c1-7)
+          GHCR_IMAGE="ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]'):sha-${SHORT_SHA}"
+          GAR_IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/rur/git_automatizacion_rur:sha-${SHORT_SHA}"
+
+          docker pull "$GHCR_IMAGE"
+          docker tag  "$GHCR_IMAGE" "$GAR_IMAGE"
+          docker push "$GAR_IMAGE"
+
+          IMAGE="$GAR_IMAGE"
+
+          gcloud run deploy "$SERVICE" \
+            --image="$IMAGE" \
+            --region="$REGION" \
+            --platform=managed \
+            --project="$PROJECT_ID" \
+            --service-account="$SA_EMAIL" \
+            --set-secrets="\
+          DATABASE_URL=RUR_DATABASE_URL:latest,\
+          SECRET_KEY=RUR_SECRET_KEY:latest,\
+          ADMIN_INITIAL_PASSWORD=RUR_ADMIN_INITIAL_PASSWORD:latest,\
+          DEFAULT_SUPERIOR_INMEDIATO=RUR_DEFAULT_SUPERIOR_INMEDIATO:latest,\
+          SMTP_HOST=RUR_SMTP_HOST:latest,\
+          SMTP_PORT=RUR_SMTP_PORT:latest,\
+          SMTP_USER=RUR_SMTP_USER:latest,\
+          SMTP_PASSWORD=RUR_SMTP_PASSWORD:latest,\
+          SMTP_FROM=RUR_SMTP_FROM:latest,\
+          APP_BASE_URL=RUR_APP_BASE_URL:latest,\
+          AZURE_CLIENT_ID=RUR_AZURE_CLIENT_ID:latest,\
+          AZURE_CLIENT_SECRET=RUR_AZURE_CLIENT_SECRET:latest,\
+          AZURE_TENANT_ID=RUR_AZURE_TENANT_ID:latest,\
+          AZURE_REDIRECT_URI=RUR_AZURE_REDIRECT_URI:latest" \
+            --set-env-vars="DEBUG=false,TZ=America/Bogota,GUNICORN_WORKERS=2" \
+            --add-cloudsql-instances="$CLOUD_SQL_INSTANCE" \
+            --allow-unauthenticated \
+            --min-instances=1 \
+            --max-instances=10 \
+            --memory=512Mi \
+            --cpu=1 \
+            --port=8000 \
+            --quiet
+
+      - name: Verificar despliegue
+        env:
+          PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+          REGION: ${{ secrets.GCP_REGION }}
+        run: |
+          URL=$(gcloud run services describe rur-app \
+            --region="$REGION" \
+            --project="$PROJECT_ID" \
+            --format="value(status.url)")
+          echo "Servicio desplegado en: $URL"
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${URL}/health" || echo "000")
+          echo "Health check: $HTTP_STATUS"
+          if [ "$HTTP_STATUS" != "200" ]; then
+            echo "ADVERTENCIA: Health check retornó $HTTP_STATUS — verificar logs"
+          fi

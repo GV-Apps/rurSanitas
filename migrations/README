@@ -1,0 +1,22 @@
+Alembic migration scripts for Automatización RUR.
+
+Comandos útiles
+---------------
+
+# Crear una nueva migración (manual)
+alembic revision -m "descripcion_del_cambio"
+
+# Crear migración automática basada en modelos SQLAlchemy (requiere Base en env.py)
+alembic revision --autogenerate -m "descripcion_del_cambio"
+
+# Aplicar todas las migraciones pendientes
+alembic upgrade head
+
+# Revertir la última migración
+alembic downgrade -1
+
+# Ver el historial
+alembic history --verbose
+
+# Ver la revisión actual
+alembic current

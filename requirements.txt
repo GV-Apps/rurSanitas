@@ -1,0 +1,37 @@
+# ── Web framework ─────────────────────────────────────────────────────────
+fastapi>=0.111.0
+uvicorn[standard]>=0.29.0
+starlette>=0.37.0
+
+# ── Templates ────────────────────────────────────────────────────────────
+jinja2>=3.1.0                # required by Jinja2Templates (FastAPI/Starlette)
+
+# ── Session middleware ────────────────────────────────────────────────────
+itsdangerous>=2.1.2          # used internally by Starlette SessionMiddleware
+
+# ── SSO / OAuth (Microsoft EntraID) ──────────────────────────────────────
+authlib>=1.2.0               # OAuth 2.0 / OIDC client (Microsoft EntraID SSO)
+httpx>=0.24.0                # async HTTP client required by authlib Starlette integration
+
+# ── Password hashing ──────────────────────────────────────────────────────
+bcrypt>=4.0.0                # slow hash with automatic salt (replaces SHA-256)
+
+# ── Production WSGI/ASGI server ───────────────────────────────────────────
+gunicorn>=22.0.0
+
+# ── Database — PostgreSQL (production) ───────────────────────────────────
+psycopg2-binary>=2.9.9       # binary wheels; no libpq-dev needed at build time
+
+# ── Database migrations ───────────────────────────────────────────────────
+alembic>=1.13.0
+sqlalchemy>=2.0.0
+
+# ── Excel / data processing ───────────────────────────────────────────────
+openpyxl>=3.1.2
+pandas>=2.2.0
+
+# ── Python standard library extras ───────────────────────────────────────
+python-multipart>=0.0.9      # required by FastAPI for UploadFile / Form
+
+# ── Development only (not installed in Docker production image) ───────────
+# pip install -r requirements-dev.txt  (see below)

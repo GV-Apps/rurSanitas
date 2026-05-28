@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+
+# Entornos virtuales
+venv/
+.venv/
+env/
+.env/
+
+# Bases de datos SQLite (locales)
+#*.db
+*.sqlite
+*.sqlite3
+
+# Secretos y variables de entorno
+.env
+.env.*
+!.env.example
+!docker/.env.prod.example
+docker/.env.prod
+app/.secret_key
+
+# Logs
+*.log
+logs/
+
+# Archivos de datos grandes
+data/BD_PRESTADORES.xlsx
+
+# IDE / OS
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Certificados y llaves SSH
+*.pem
+*.key
+*.crt
+
+# Docker volúmenes locales
+docker/pgdata/

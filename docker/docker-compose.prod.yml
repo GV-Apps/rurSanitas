@@ -1,0 +1,39 @@
+# docker-compose.prod.yml — Entorno de PRODUCCIÓN (EC2 + RDS PostgreSQL)
+# Uso: docker-compose -f docker-compose.prod.yml up -d
+version: "3.9"
+
+services:
+  app:
+    image: ${ECR_IMAGE}          # e.g. 123456789.dkr.ecr.us-east-1.amazonaws.com/rur-app:latest
+    restart: unless-stopped
+    env_file:
+      - .env.prod                # Contains DATABASE_URL, SECRET_KEY, etc.
+    environment:
+      DEBUG: "false"
+      TZ:    "America/Bogota"
+    ports:
+      - "8000:8000"
+    logging:
+      driver: "awslogs"
+      options:
+        awslogs-group:  /ecs/rur-app
+        awslogs-region: us-east-1
+        awslogs-stream-prefix: app
+
+  nginx:
+    image: nginx:1.25-alpine
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro   # Certbot certs
+    logging:
+      driver: "awslogs"
+      options:
+        awslogs-group:  /ecs/rur-nginx
+        awslogs-region: us-east-1
+        awslogs-stream-prefix: nginx

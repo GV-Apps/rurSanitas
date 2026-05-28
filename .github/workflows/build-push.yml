@@ -1,0 +1,207 @@
+name: Build & Push Docker image
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Política de promoción:
+#   feature/* → solo security-gates (sin push)
+#   docker     → security-gates + build + push  (staging)
+#   main       → security-gates + build + push  (producción)
+# El deploy a Cloud Run se ejecuta en deploy-cloudrun.yml al terminar este.
+# ─────────────────────────────────────────────────────────────────────────────
+env:
+  IMAGE_REPO: ghcr.io/${{ github.repository_owner }}/git_automatizacion_rur
+
+on:
+  push:
+    branches: [docker, main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  # ── 1. SAST + SCA + Tests — gates de seguridad ────────────────────────────
+  security-gates:
+    name: "Gates: SAST + SCA + Tests"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Instalar herramientas de análisis
+        run: pip install semgrep pip-audit pytest pytest-cov httpx bcrypt
+
+      - name: Instalar dependencias de la aplicación
+        run: pip install -r requirements.txt
+
+      # SAST — falla si hay hallazgos ERROR no marcados con nosemgrep
+      - name: "SAST — Semgrep (CWE-89, CWE-798, CWE-79)"
+        run: |
+          semgrep scan \
+            --config=auto \
+            --error \
+            --severity=ERROR \
+            --exclude="tests/" \
+            --exclude="data/" \
+            app/
+
+      # SCA — detecta CVEs con fix disponible
+      - name: "SCA — pip-audit"
+        run: pip-audit -r requirements.txt --format=json --output=pip-audit.json || true
+
+      - name: "SCA — gate: sin CVEs con fix disponible"
+        run: |
+          python -c "
+          import json, sys
+          with open('pip-audit.json') as f:
+              data = json.load(f)
+          vulns = [v for d in data.get('dependencies', []) for v in d.get('vulns', [])]
+          fixable = [v for v in vulns if v.get('fix_versions')]
+          if fixable:
+              print('VULNERABILIDADES CON FIX DISPONIBLE:')
+              for v in fixable:
+                  print(f'  {v[\"id\"]}: {v[\"description\"][:80]}')
+              sys.exit(1)
+          print(f'SCA OK — {len(vulns)} conocidas sin fix disponible (aceptadas)')
+          "
+
+      # Tests con cobertura mínima — umbral definido en pytest.ini (--cov-fail-under=70)
+      - name: "Tests + Coverage (≥ 70%)"
+        run: pytest tests/ -v
+
+  # ── 2. Build & Push imagen ────────────────────────────────────────────────
+  build-push:
+    name: "Build & Push imagen"
+    needs: security-gates
+    # Solo push en ramas principales (no en PRs)
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write   # Necesario para cosign keyless signing
+
+    outputs:
+      image-digest: ${{ steps.build.outputs.digest }}
+      image-ref: ${{ steps.meta.outputs.tags }}
+
+    steps:
+      - name: Normalizar IMAGE_REPO a minúsculas
+        run: echo "IMAGE_REPO=ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
+      - uses: actions/checkout@v4
+
+      - name: Login a GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Generar tags y labels
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_REPO }}
+          tags: |
+            type=raw,value=latest
+            type=sha,prefix=sha-,format=short
+
+      - name: Build y Push imagen
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ── 3. Escaneo de imagen (Trivy) ──────────────────────────────────────────
+  trivy-scan:
+    name: "Escaneo imagen — Trivy"
+    needs: build-push
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+      security-events: write   # Para subir resultados a GitHub Security tab
+
+    steps:
+      - name: Normalizar IMAGE_REPO a minúsculas
+        run: echo "IMAGE_REPO=ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
+      - name: Login a GHCR (para leer imagen privada)
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Genera SARIF con todas las severidades (requerido para formato válido)
+      - name: "Trivy — generar SARIF"
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.IMAGE_REPO }}:latest
+          format: sarif
+          output: trivy-results.sarif
+          exit-code: "0"
+          ignore-unfixed: true
+          scanners: vuln
+
+      # Gate explícito: falla solo si hay CRITICAL/HIGH con fix disponible
+      - name: "Trivy — gate CRITICAL/HIGH"
+        run: |
+          trivy image \
+            --format table \
+            --severity CRITICAL,HIGH \
+            --exit-code 1 \
+            --ignore-unfixed \
+            --scanners vuln \
+            ${{ env.IMAGE_REPO }}:latest
+
+      - name: Subir resultados a GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        continue-on-error: true   # Requiere GitHub Advanced Security (privado)
+        with:
+          sarif_file: trivy-results.sarif
+
+  # ── 4. Firma de imagen con cosign (keyless — sin JSON keys) ───────────────
+  sign-image:
+    name: "Firma imagen — cosign"
+    needs: [build-push, trivy-scan]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write   # Obligatorio para cosign OIDC keyless
+
+    steps:
+      - name: Normalizar IMAGE_REPO a minúsculas
+        run: echo "IMAGE_REPO=ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
+      - name: Instalar cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Login a GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Firma keyless: usa OIDC de GitHub Actions como identidad
+      - name: Firmar imagen con cosign
+        run: |
+          cosign sign --yes \
+            ${{ env.IMAGE_REPO }}@${{ needs.build-push.outputs.image-digest }}

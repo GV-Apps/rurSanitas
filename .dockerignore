@@ -1,0 +1,37 @@
+# ── Control de versiones ───────────────────────────────────────────────────────
+.git
+.gitignore
+.github
+
+# ── Entornos Python ────────────────────────────────────────────────────────────
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+.venv
+venv
+env
+
+# ── Variables de entorno (nunca en imagen) ─────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── Archivos de desarrollo / IDE ───────────────────────────────────────────────
+.vscode
+.idea
+*.md
+*.log
+
+# ── Tests ──────────────────────────────────────────────────────────────────────
+tests/
+pytest.ini
+.pytest_cache
+
+# ── Docker (el contexto ya es la raíz; excluir configs de Docker del build) ────
+# NOTA: docker/scripts NO se excluye — el Dockerfile copia entrypoint.sh desde ahí
+docker/docker-compose*.yml
+docker/nginx
+Dockerfile
+docker-compose*.yml

@@ -1,0 +1,42 @@
+# docker-compose.yml — Entorno de DESARROLLO con PostgreSQL local
+version: "3.9"
+
+services:
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       rur_dev
+      POSTGRES_USER:     rur_user
+      POSTGRES_PASSWORD: rur_pass
+    volumes:
+      - pgdata_dev:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rur_user -d rur_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://rur_user:rur_pass@db:5432/rur_dev
+      SECRET_KEY:   dev-secret-change-me
+      DEBUG:        "true"
+      TZ:           "America/Bogota"
+    volumes:
+      # Hot-reload: mount source so changes are reflected without rebuild
+      - ../app:/app/app:ro
+    ports:
+      - "8000:8000"
+
+volumes:
+  pgdata_dev:

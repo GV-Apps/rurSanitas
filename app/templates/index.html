@@ -1,0 +1,2122 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sanitas - Sistema de Conciliaciones</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous">
+    <link rel="stylesheet" href="{{ root_path }}/static/style.css?v=5">
+</head>
+<body>
+    <!-- ================================================================= -->
+    <!-- LOGIN SCREEN                                                      -->
+    <!-- ================================================================= -->
+    <div id="login-screen" class="login-screen">
+        <div class="login-card">
+            <div class="login-logo">
+                <img src="{{ root_path }}/static/eps-logo.svg"
+                     alt="EPS Sanitas"
+                     class="login-logo-img"
+                     width="180" height="40">
+                <p class="login-subtitle">Sistema de Conciliaciones</p>
+            </div>
+
+            <!-- Bot&oacute;n Microsoft EntraID (oculto hasta que JS confirme que est&aacute; configurado) -->
+            <button type="button" id="btn-microsoft-login" class="btn-microsoft hidden">
+                <svg width="20" height="20" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
+                    <rect x="11" y="1" width="9" height="9" fill="#7fba00"/>
+                    <rect x="1" y="11" width="9" height="9" fill="#00a4ef"/>
+                    <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
+                </svg>
+                Continuar con Microsoft
+            </button>
+
+            <!-- Separador (visible solo cuando EntraID est&aacute; activo) -->
+            <div id="microsoft-auth-separator" class="login-separator hidden">
+                <span>o</span>
+            </div>
+
+            <!-- Formulario usuario / contrase&ntilde;a -->
+            <div id="password-login-section">
+                <form id="login-form" autocomplete="off">
+                    <div class="login-field">
+                        <label for="login-user">Usuario</label>
+                        <div class="input-icon">
+                            <svg class="icon" viewBox="0 0 20 20" fill="currentColor"><path d="M10 10a4 4 0 100-8 4 4 0 000 8zm-7 8a7 7 0 0114 0H3z"/></svg>
+                            <input type="text" id="login-user" placeholder="Ingrese su usuario" required>
+                        </div>
+                    </div>
+
+                    <div class="login-field">
+                        <label for="login-pass">Contrase&ntilde;a</label>
+                        <div class="input-icon">
+                            <svg class="icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/></svg>
+                            <input type="password" id="login-pass" placeholder="Ingrese su contrase&ntilde;a" required>
+                            <button type="button" id="toggle-pass" class="toggle-pass" title="Mostrar contrase&ntilde;a">
+                                <svg id="eye-open" viewBox="0 0 20 20" fill="currentColor" width="18" height="18"><path d="M10 3C5 3 1.7 7.3.5 10c1.2 2.7 4.5 7 9.5 7s8.3-4.3 9.5-7c-1.2-2.7-4.5-7-9.5-7zm0 12a5 5 0 110-10 5 5 0 010 10zm0-8a3 3 0 100 6 3 3 0 000-6z"/></svg>
+                                <svg id="eye-closed" class="hidden" viewBox="0 0 20 20" fill="currentColor" width="18" height="18"><path fill-rule="evenodd" d="M3.7 2.3a1 1 0 00-1.4 1.4l14 14a1 1 0 001.4-1.4l-1.5-1.5A9.8 9.8 0 0020 10c-1.2-2.7-4.5-7-10-7a9.4 9.4 0 00-4.3 1L3.7 2.3zM10 5a5 5 0 014.8 6.4l-1.5-1.5a3 3 0 00-3.2-3.2L8.6 5.2A5 5 0 0110 5zM2.5 6.2l1.7 1.7A5 5 0 007.3 15L5 12.7A9.7 9.7 0 012.5 10c0 0 0-.1 0-.1L2.5 6.2z" clip-rule="evenodd"/></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="login-error" class="login-error hidden"></div>
+
+                    <button type="submit" class="btn-login">Iniciar Sesi&oacute;n</button>
+                </form>
+            </div>
+
+            <!-- Link para mostrar el formulario de contrase&ntilde;a cuando EntraID est&aacute; activo -->
+            <div id="password-login-toggle" class="hidden" style="text-align:center;margin-top:.6rem">
+                <button type="button" id="btn-show-password-login" class="btn-link-sm">
+                    Iniciar sesi&oacute;n con contrase&ntilde;a
+                </button>
+            </div>
+
+            <div class="login-footer">
+                <p>Ingrese con su correo institucional</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: correo no registrado en el sistema (tras flujo Microsoft) -->
+    <div id="sso-not-found-modal" class="modal-overlay hidden" style="z-index:2000">
+        <div class="modal-box" style="max-width:480px">
+            <h3 class="modal-title">Acceso no autorizado</h3>
+            <p id="sso-not-found-msg" class="modal-body-text" style="margin-bottom:1rem"></p>
+            <div id="sso-request-form">
+                <label class="form-label">Comentario <span style="font-weight:400;color:#64748B">(opcional)</span></label>
+                <textarea id="sso-request-comment" rows="3"
+                    placeholder="Describe brevemente por qu&eacute; necesitas acceso..."
+                    style="width:100%;padding:.5rem .75rem;border:1.5px solid #CBD5E1;border-radius:8px;font-size:.9rem;resize:vertical;font-family:inherit"></textarea>
+                <div style="display:flex;gap:.5rem;margin-top:1rem;justify-content:flex-end">
+                    <button type="button" id="btn-sso-request-cancel" class="btn-ghost">Cancelar</button>
+                    <button type="button" id="btn-sso-request-send" class="btn-primary">Enviar solicitud</button>
+                </div>
+            </div>
+            <div id="sso-request-sent" class="hidden" style="text-align:center;padding:1rem 0">
+                <p style="color:#16A34A;font-weight:600;font-size:1rem">&#10003; Solicitud enviada</p>
+                <p style="color:#475569;font-size:.9rem;margin-top:.4rem">El administrador ha sido notificado y se comunicar&aacute; contigo.</p>
+                <button type="button" id="btn-sso-request-close" class="btn-primary" style="margin-top:1rem">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- APP SCREEN                                                        -->
+    <!-- ================================================================= -->
+    <div id="app-screen" class="hidden">
+        <!-- Navbar -->
+        <nav class="navbar">
+            <div class="nav-brand">
+                <img src="{{ root_path }}/static/eps-logo.svg"
+                     alt="EPS Sanitas"
+                     class="nav-logo-img"
+                     width="110" height="25">
+                <span class="nav-divider">|</span>
+                <small class="nav-app-name">Conciliaciones</small>
+            </div>
+            <div class="nav-user">
+                <div class="user-info">
+                    <span id="nav-user-name"></span>
+                    <span id="nav-user-role" class="nav-role-badge"></span>
+                </div>
+                <!-- Campana de notificaciones -->
+                <button id="btn-notif" class="btn-nav btn-bell" title="Notificaciones">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                    </svg>
+                    <span id="notif-badge" class="notif-badge hidden">0</span>
+                </button>
+                <button id="btn-logout" class="btn-nav">Cerrar sesi&oacute;n</button>
+            </div>
+        </nav>
+
+        <!-- Panel de notificaciones -->
+        <div id="notif-overlay" class="notif-overlay hidden"></div>
+        <aside id="notif-panel" class="notif-panel hidden">
+            <div class="notif-panel-header">
+                <h3>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                    </svg>
+                    Notificaciones
+                </h3>
+                <div class="notif-panel-actions">
+                    <button id="btn-notif-mark-all" class="btn-notif-action" title="Marcar todas como leídas">Leer todas</button>
+                    <button id="btn-notif-close" class="btn-notif-close" title="Cerrar">&times;</button>
+                </div>
+            </div>
+            <div id="notif-list" class="notif-list">
+                <p class="notif-empty">Cargando...</p>
+            </div>
+        </aside>
+
+        <div class="app-body">
+        <!-- ===== SIDEBAR ===== -->
+        <aside id="sidebar" class="sidebar">
+            <button id="sidebar-toggle" class="sidebar-toggle" title="Colapsar menú">
+                <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20"><path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/></svg>
+            </button>
+            <nav class="sidebar-nav">
+                <button class="sidebar-item active" data-view="main" id="nav-registros">
+                    <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20"><path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h6a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/></svg>
+                    <span>Registros</span>
+                </button>
+                <button class="sidebar-item hidden" data-view="creados" id="nav-creados">
+                    <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/></svg>
+                    <span>Registros creados</span>
+                </button>
+                <button class="sidebar-item hidden" data-view="cerrados" id="nav-cerrados">
+                    <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20"><path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/></svg>
+                    <span>Cerrados sin finalizaci&oacute;n</span>
+                </button>
+                <button class="sidebar-item hidden" data-view="mis-auditorias" id="nav-mis-auditorias">
+                    <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20"><path fill-rule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5C2.056 5.649 2 6.319 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.35-.166-2.001A11.954 11.954 0 0110 1.944zM11 14a1 1 0 11-2 0 1 1 0 012 0zm0-7a1 1 0 10-2 0v3a1 1 0 102 0V7z" clip-rule="evenodd"/></svg>
+                    <span>Mis auditor&iacute;as pendientes</span>
+                    <span id="mis-auditorias-badge" class="notif-badge hidden" style="position:relative;top:0;right:0;margin-left:auto;"></span>
+                </button>
+                <button class="sidebar-item hidden" data-view="pendientes-n" id="nav-pendientes-n">
+                    <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>
+                    <span>Pendientes aprobaci&oacute;n N</span>
+                    <span id="pendientes-n-badge" class="notif-badge hidden" style="position:relative;top:0;right:0;margin-left:auto;"></span>
+                </button>
+                <button class="sidebar-item hidden" data-view="rechazados-n" id="nav-rechazados-n">
+                    <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/></svg>
+                    <span>Rechazados Fecha Solicitud</span>
+                </button>
+                <button class="sidebar-item hidden" data-view="pendientes-otra-regional" id="nav-pendientes-otra-regional">
+                    <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg>
+                    <span>Pend. aprobaci&oacute;n otra regional</span>
+                    <span id="pendientes-otra-regional-badge" class="notif-badge hidden" style="position:relative;top:0;right:0;margin-left:auto;"></span>
+                </button>
+                <button class="sidebar-item hidden" data-view="pendientes-validar" id="nav-pendientes-validar">
+                    <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                    <span>Pendientes de validar</span>
+                    <span id="pendientes-validar-badge" class="notif-badge hidden" style="position:relative;top:0;right:0;margin-left:auto;"></span>
+                </button>
+
+                <!-- Revisión de Contralor: visible para LIDER y ADMIN cuando hay registros BY=ENVIADA -->
+                <button class="sidebar-item hidden" data-view="en-revision-contralor" id="nav-en-revision-contralor">
+                    <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20"><path fill-rule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5C2.056 5.649 2 6.319 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.35-.166-2.001A11.954 11.954 0 0110 1.944zM11 14a1 1 0 11-2 0 1 1 0 012 0zm0-7a1 1 0 10-2 0v3a1 1 0 102 0V7z" clip-rule="evenodd"/></svg>
+                    <span>Registros en Revisi&oacute;n de Contralor</span>
+                    <span id="en-revision-contralor-badge" class="notif-badge hidden" style="position:relative;top:0;right:0;margin-left:auto;"></span>
+                </button>
+
+                <!-- En Curso (Contralor): visible solo para CONTRALOR cuando hay registros non-ENVIADA -->
+                <button class="sidebar-item hidden" data-view="en-curso-contralor" id="nav-en-curso-contralor">
+                    <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20"><path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h6a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/></svg>
+                    <span>Registros en Curso</span>
+                    <span id="en-curso-contralor-badge" class="notif-badge hidden" style="position:relative;top:0;right:0;margin-left:auto;"></span>
+                </button>
+
+                <button class="sidebar-item hidden" data-view="finalizados" id="nav-finalizados">
+                    <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20"><path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                    <span>Registros Finalizados</span>
+                </button>
+
+                <hr class="sidebar-divider">
+                <button class="sidebar-item" data-view="historial" id="nav-historial">
+                    <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>
+                    <span>Historial</span>
+                </button>
+                <button class="sidebar-item" data-view="solicitudes" id="nav-solicitudes">
+                    <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/></svg>
+                    <span>Solicitudes</span>
+                    <span id="solicitudes-sidebar-badge" class="notif-badge hidden" style="position:relative;top:0;right:0;margin-left:auto;"></span>
+                </button>
+                <button class="sidebar-item hidden" data-view="auditorias-activas" id="nav-auditorias-activas">
+                    <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20"><path fill-rule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5C2.056 5.649 2 6.319 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.35-.166-2.001A11.954 11.954 0 0110 1.944zM11 14a1 1 0 11-2 0 1 1 0 012 0zm0-7a1 1 0 10-2 0v3a1 1 0 102 0V7z" clip-rule="evenodd"/></svg>
+                    <span>Auditor&iacute;as activas</span>
+                    <span id="auditorias-sidebar-badge" class="notif-badge hidden" style="position:relative;top:0;right:0;margin-left:auto;"></span>
+                </button>
+                <button class="sidebar-item hidden" id="nav-solicitar-gestor">
+                    <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20"><path d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 016 6H2a6 6 0 016-6zM16 7a1 1 0 10-2 0v1h-1a1 1 0 100 2h1v1a1 1 0 102 0v-1h1a1 1 0 100-2h-1V7z"/></svg>
+                    <span>Solicitar Gestor</span>
+                    <span id="sol-gestor-sidebar-badge" class="notif-badge hidden" style="position:relative;top:0;right:0;margin-left:auto;"></span>
+                </button>
+
+                <div id="sidebar-admin-group" class="hidden">
+                    <hr class="sidebar-divider">
+                    <div class="sidebar-group-label">Administraci&oacute;n</div>
+                    <button class="sidebar-item" data-view="admin" id="nav-listas">
+                        <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.53 1.53 0 01-2.29.95c-1.33-.81-2.86.72-2.05 2.05.46.76.13 1.75-.68 2.13-1.56.38-1.56 2.6 0 2.98a1.53 1.53 0 01.95 2.29c-.81 1.33.72 2.86 2.05 2.05a1.53 1.53 0 012.13.68c.38 1.56 2.6 1.56 2.98 0a1.53 1.53 0 012.29-.95c1.33.81 2.86-.72 2.05-2.05a1.53 1.53 0 01.68-2.13c1.56-.38 1.56-2.6 0-2.98a1.53 1.53 0 01-.95-2.29c.81-1.33-.72-2.86-2.05-2.05a1.53 1.53 0 01-2.13-.68zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>
+                        <span>Listas</span>
+                    </button>
+                    <button class="sidebar-item" data-view="users" id="nav-usuarios">
+                        <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/></svg>
+                        <span>Usuarios</span>
+                    </button>
+                    <button class="sidebar-item" data-view="prestadores" id="nav-prestadores">
+                        <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20"><path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a1 1 0 110 2H4a1 1 0 110-2V4zm3 1h2v2H7V5zm2 4H7v2h2V9zm2-4h2v2h-2V5zm2 4h-2v2h2V9z" clip-rule="evenodd"/></svg>
+                        <span>Prestadores</span>
+                    </button>
+                    <button class="sidebar-item" data-view="festivos" id="nav-festivos">
+                        <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20"><path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/></svg>
+                        <span>Festivos</span>
+                    </button>
+                    <button class="sidebar-item" data-view="ciudad-codigos" id="nav-ciudad-codigos">
+                        <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg>
+                        <span>C&oacute;digos de Ciudad</span>
+                    </button>
+                    <button class="sidebar-item" data-view="campos" id="nav-campos">
+                        <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20"><path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"/></svg>
+                        <span>Campos</span>
+                    </button>
+                    <button class="sidebar-item" data-view="audit" id="nav-audit">
+                        <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20"><path fill-rule="evenodd" d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9zM4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/></svg>
+                        <span>Auditor&iacute;a</span>
+                    </button>
+                    <button class="sidebar-item" data-view="sso-access-requests" id="nav-sso-access-requests">
+                        <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clip-rule="evenodd"/></svg>
+                        <span>Solicitudes SSO</span>
+                        <span id="sso-requests-badge" class="notif-badge hidden" style="position:relative;top:0;right:0;margin-left:auto;"></span>
+                    </button>
+                    <button class="sidebar-item" data-view="umbral-lider" id="nav-umbral-lider">
+                        <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20"><path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                        <span>Umbral L&iacute;der</span>
+                    </button>
+                </div>
+            </nav>
+        </aside>
+
+        <main>
+            <!-- ========== MAIN SECTION — Lista de registros ========== -->
+            <section id="main-section" class="hidden">
+                <div class="main-top-bar">
+                    <div>
+                        <h2>Registros de Conciliaci&oacute;n</h2>
+                        <p class="section-desc" id="main-role-desc"></p>
+                    </div>
+                    <div class="main-top-actions">
+                        <button id="btn-new-record" class="btn-primary">
+                            <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
+                            Nuevo Registro
+                        </button>
+                        <button id="btn-export-main" class="btn-export">
+                            <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.3-6.7a1 1 0 011.4 0L9 11.6V3a1 1 0 112 0v8.6l1.3-1.3a1 1 0 111.4 1.4l-3 3a1 1 0 01-1.4 0l-3-3a1 1 0 010-1.4z" clip-rule="evenodd"/></svg>
+                            Exportar
+                        </button>
+                    </div>
+                </div>
+
+                <div class="records-toolbar">
+                    <div class="search-box">
+                        <svg class="icon-sm" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.9 3.5l4.3 4.3a1 1 0 01-1.4 1.4l-4.3-4.3A6 6 0 012 8z" clip-rule="evenodd"/></svg>
+                        <input type="text" id="main-search" placeholder="Buscar en todos los registros...">
+                    </div>
+                    <span id="main-count" class="records-count"></span>
+                </div>
+
+                <!-- Contenedor de secciones (reemplaza la tabla única) -->
+                <div id="main-sections"></div>
+
+                <div id="main-empty" class="empty-state hidden">
+                    <svg viewBox="0 0 64 64" fill="none" width="48" height="48"><rect x="8" y="12" width="48" height="40" rx="4" stroke="#CBD5E0" stroke-width="2"/><path d="M8 22h48" stroke="#CBD5E0" stroke-width="2"/><circle cx="16" cy="17" r="2" fill="#CBD5E0"/><circle cx="22" cy="17" r="2" fill="#CBD5E0"/><circle cx="28" cy="17" r="2" fill="#CBD5E0"/><path d="M24 36h16M28 42h8" stroke="#CBD5E0" stroke-width="2" stroke-linecap="round"/></svg>
+                    <p>No hay registros que coincidan con los filtros aplicados.</p>
+                </div>
+            </section>
+
+            <!-- ========== CREADOS — Registros creados por el usuario ========== -->
+            <section id="creados-section" class="hidden">
+                <div class="main-top-bar">
+                    <div>
+                        <button id="btn-creados-back" class="btn-ghost">&larr; Volver a registros</button>
+                        <h2>Registros creados</h2>
+                    </div>
+                </div>
+                <div class="records-toolbar">
+                    <div class="search-box">
+                        <svg class="icon-sm" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.9 3.5l4.3 4.3a1 1 0 01-1.4 1.4l-4.3-4.3A6 6 0 012 8z" clip-rule="evenodd"/></svg>
+                        <input type="text" id="creados-search" placeholder="Buscar en registros creados...">
+                    </div>
+                    <span id="creados-count" class="records-count"></span>
+                </div>
+
+                <div id="creados-sections"></div>
+
+                <div id="creados-empty" class="empty-state hidden">
+                    <svg viewBox="0 0 64 64" fill="none" width="48" height="48"><rect x="8" y="12" width="48" height="40" rx="4" stroke="#CBD5E0" stroke-width="2"/><path d="M8 22h48" stroke="#CBD5E0" stroke-width="2"/><circle cx="16" cy="17" r="2" fill="#CBD5E0"/><circle cx="22" cy="17" r="2" fill="#CBD5E0"/><circle cx="28" cy="17" r="2" fill="#CBD5E0"/><path d="M24 36h16M28 42h8" stroke="#CBD5E0" stroke-width="2" stroke-linecap="round"/></svg>
+                    <p>No hay registros creados que coincidan con la búsqueda.</p>
+                </div>
+            </section>
+
+            <!-- ========== CERRADOS — Registros cerrados sin finalización ========== -->
+            <section id="cerrados-section" class="hidden">
+                <div class="main-top-bar">
+                    <div>
+                        <button id="btn-cerrados-back" class="btn-ghost">&larr; Volver a registros</button>
+                        <h2>Cerrados sin finalizaci&oacute;n</h2>
+                    </div>
+                </div>
+                <div class="records-toolbar">
+                    <div class="search-box">
+                        <svg class="icon-sm" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.9 3.5l4.3 4.3a1 1 0 01-1.4 1.4l-4.3-4.3A6 6 0 012 8z" clip-rule="evenodd"/></svg>
+                        <input type="text" id="cerrados-search" placeholder="Buscar en registros cerrados...">
+                    </div>
+                    <span id="cerrados-count" class="records-count"></span>
+                </div>
+
+                <div id="cerrados-sections"></div>
+
+                <div id="cerrados-empty" class="empty-state hidden">
+                    <svg viewBox="0 0 64 64" fill="none" width="48" height="48"><rect x="8" y="12" width="48" height="40" rx="4" stroke="#CBD5E0" stroke-width="2"/><path d="M8 22h48" stroke="#CBD5E0" stroke-width="2"/><circle cx="16" cy="17" r="2" fill="#CBD5E0"/><circle cx="22" cy="17" r="2" fill="#CBD5E0"/><circle cx="28" cy="17" r="2" fill="#CBD5E0"/><path d="M24 36h16M28 42h8" stroke="#CBD5E0" stroke-width="2" stroke-linecap="round"/></svg>
+                    <p>No hay registros cerrados que coincidan con la b&uacute;squeda.</p>
+                </div>
+            </section>
+
+            <!-- ========== PENDIENTES-N — Registros pendientes de aprobación de Fecha N ========== -->
+            <section id="pendientes-n-section" class="hidden">
+                <div class="main-top-bar">
+                    <div>
+                        <button id="btn-pendientes-n-back" class="btn-ghost">&larr; Volver a registros</button>
+                        <h2>Pendientes de aprobaci&oacute;n — Fecha de Solicitud [N]</h2>
+                    </div>
+                </div>
+                <div class="records-toolbar">
+                    <div class="search-box">
+                        <svg class="icon-sm" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.9 3.5l4.3 4.3a1 1 0 01-1.4 1.4l-4.3-4.3A6 6 0 012 8z" clip-rule="evenodd"/></svg>
+                        <input type="text" id="pendientes-n-search" placeholder="Buscar en pendientes...">
+                    </div>
+                    <span id="pendientes-n-count" class="records-count"></span>
+                </div>
+                <div id="pendientes-n-sections"></div>
+                <div id="pendientes-n-empty" class="empty-state hidden">
+                    <svg viewBox="0 0 64 64" fill="none" width="48" height="48"><rect x="8" y="12" width="48" height="40" rx="4" stroke="#CBD5E0" stroke-width="2"/><path d="M8 22h48" stroke="#CBD5E0" stroke-width="2"/><circle cx="16" cy="17" r="2" fill="#CBD5E0"/><circle cx="22" cy="17" r="2" fill="#CBD5E0"/><circle cx="28" cy="17" r="2" fill="#CBD5E0"/><path d="M24 36h16M28 42h8" stroke="#CBD5E0" stroke-width="2" stroke-linecap="round"/></svg>
+                    <p>No hay registros pendientes de aprobaci&oacute;n.</p>
+                </div>
+            </section>
+
+            <!-- ========== RECHAZADOS-N — Registros rechazados por Fecha de Solicitud ========== -->
+            <section id="rechazados-n-section" class="hidden">
+                <div class="main-top-bar">
+                    <div>
+                        <button id="btn-rechazados-n-back" class="btn-ghost">&larr; Volver a registros</button>
+                        <h2>Rechazados por Fecha de Solicitud [N]</h2>
+                    </div>
+                </div>
+                <div class="records-toolbar">
+                    <div class="search-box">
+                        <svg class="icon-sm" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.9 3.5l4.3 4.3a1 1 0 01-1.4 1.4l-4.3-4.3A6 6 0 012 8z" clip-rule="evenodd"/></svg>
+                        <input type="text" id="rechazados-n-search" placeholder="Buscar en rechazados...">
+                    </div>
+                    <span id="rechazados-n-count" class="records-count"></span>
+                </div>
+                <div id="rechazados-n-sections"></div>
+                <div id="rechazados-n-empty" class="empty-state hidden">
+                    <svg viewBox="0 0 64 64" fill="none" width="48" height="48"><rect x="8" y="12" width="48" height="40" rx="4" stroke="#CBD5E0" stroke-width="2"/><path d="M8 22h48" stroke="#CBD5E0" stroke-width="2"/><circle cx="16" cy="17" r="2" fill="#CBD5E0"/><circle cx="22" cy="17" r="2" fill="#CBD5E0"/><circle cx="28" cy="17" r="2" fill="#CBD5E0"/><path d="M24 36h16M28 42h8" stroke="#CBD5E0" stroke-width="2" stroke-linecap="round"/></svg>
+                    <p>No hay registros rechazados por Fecha de Solicitud.</p>
+                </div>
+            </section>
+
+            <!-- ========== PENDIENTES DE VALIDAR — Registros no validados (LIDER / CONTRALOR / ADMIN) ========== -->
+            <section id="pendientes-validar-section" class="hidden">
+                <div class="main-top-bar">
+                    <div>
+                        <button id="btn-pendientes-validar-back" class="btn-ghost">&larr; Volver a registros</button>
+                        <h2>Pendientes de validar</h2>
+                        <p class="section-desc">Registros creados aún no validados por el responsable.</p>
+                    </div>
+                </div>
+                <div class="records-toolbar">
+                    <div class="search-box">
+                        <svg class="icon-sm" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.9 3.5l4.3 4.3a1 1 0 01-1.4 1.4l-4.3-4.3A6 6 0 012 8z" clip-rule="evenodd"/></svg>
+                        <input type="text" id="pendientes-validar-search" placeholder="Buscar en pendientes de validar...">
+                    </div>
+                    <span id="pendientes-validar-count" class="records-count"></span>
+                </div>
+                <div id="pendientes-validar-sections"></div>
+                <div id="pendientes-validar-empty" class="empty-state hidden">
+                    <svg viewBox="0 0 64 64" fill="none" width="48" height="48"><rect x="8" y="12" width="48" height="40" rx="4" stroke="#CBD5E0" stroke-width="2"/><path d="M8 22h48" stroke="#CBD5E0" stroke-width="2"/><circle cx="16" cy="17" r="2" fill="#CBD5E0"/><circle cx="22" cy="17" r="2" fill="#CBD5E0"/><circle cx="28" cy="17" r="2" fill="#CBD5E0"/><path d="M24 36h16M28 42h8" stroke="#CBD5E0" stroke-width="2" stroke-linecap="round"/></svg>
+                    <p>No hay registros pendientes de validar.</p>
+                </div>
+            </section>
+
+            <!-- ========== REGISTROS FINALIZADOS — Solo CONTRALOR y ADMIN ========== -->
+            <section id="finalizados-section" class="hidden">
+                <div class="main-top-bar">
+                    <div>
+                        <button id="btn-finalizados-back" class="btn-ghost">&larr; Volver a registros</button>
+                        <h2>Registros Finalizados</h2>
+                        <p class="section-desc">Registros con proceso de conciliaci&oacute;n completamente finalizado.</p>
+                    </div>
+                    <button id="btn-export-finalizados" class="btn-outline btn-sm">&#8595; Exportar</button>
+                </div>
+                <div class="records-toolbar">
+                    <div class="search-box">
+                        <svg class="icon-sm" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.9 3.5l4.3 4.3a1 1 0 01-1.4 1.4l-4.3-4.3A6 6 0 012 8z" clip-rule="evenodd"/></svg>
+                        <input type="text" id="finalizados-search" placeholder="Buscar en registros finalizados...">
+                    </div>
+                    <span id="finalizados-count" class="records-count"></span>
+                </div>
+                <div id="finalizados-sections"></div>
+                <div id="finalizados-empty" class="empty-state hidden">
+                    <svg viewBox="0 0 64 64" fill="none" width="48" height="48"><rect x="8" y="12" width="48" height="40" rx="4" stroke="#CBD5E0" stroke-width="2"/><path d="M8 22h48" stroke="#CBD5E0" stroke-width="2"/><circle cx="16" cy="17" r="2" fill="#CBD5E0"/><circle cx="22" cy="17" r="2" fill="#CBD5E0"/><circle cx="28" cy="17" r="2" fill="#CBD5E0"/><path d="M24 36h16M28 42h8" stroke="#CBD5E0" stroke-width="2" stroke-linecap="round"/></svg>
+                    <p>No hay registros finalizados.</p>
+                </div>
+            </section>
+
+            <!-- ========== REGISTROS EN REVISIÓN DE CONTRALOR — BY=ENVIADA, visible para LIDER y ADMIN ========== -->
+            <section id="en-revision-contralor-section" class="hidden">
+                <div class="main-top-bar">
+                    <div>
+                        <button id="btn-en-revision-contralor-back" class="btn-ghost">&larr; Volver a registros</button>
+                        <h2>Registros en Revisi&oacute;n de Contralor</h2>
+                        <p class="section-desc">Registros enviados al Contralor M&eacute;dico Nacional para revisi&oacute;n.</p>
+                    </div>
+                </div>
+                <div class="records-toolbar">
+                    <div class="search-box">
+                        <svg class="icon-sm" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.9 3.5l4.3 4.3a1 1 0 01-1.4 1.4l-4.3-4.3A6 6 0 012 8z" clip-rule="evenodd"/></svg>
+                        <input type="text" id="en-revision-contralor-search" placeholder="Buscar en registros en revisi&oacute;n...">
+                    </div>
+                    <span id="en-revision-contralor-count" class="records-count"></span>
+                </div>
+                <div id="en-revision-contralor-sections"></div>
+                <div id="en-revision-contralor-empty" class="empty-state hidden">
+                    <svg viewBox="0 0 64 64" fill="none" width="48" height="48"><rect x="8" y="12" width="48" height="40" rx="4" stroke="#CBD5E0" stroke-width="2"/><path d="M8 22h48" stroke="#CBD5E0" stroke-width="2"/><circle cx="16" cy="17" r="2" fill="#CBD5E0"/><circle cx="22" cy="17" r="2" fill="#CBD5E0"/><circle cx="28" cy="17" r="2" fill="#CBD5E0"/><path d="M24 36h16M28 42h8" stroke="#CBD5E0" stroke-width="2" stroke-linecap="round"/></svg>
+                    <p>No hay registros en revisi&oacute;n de contralor.</p>
+                </div>
+            </section>
+
+            <!-- ========== REGISTROS EN CURSO (CONTRALOR) — non-ENVIADA, visible solo para CONTRALOR ========== -->
+            <section id="en-curso-contralor-section" class="hidden">
+                <div class="main-top-bar">
+                    <div>
+                        <button id="btn-en-curso-contralor-back" class="btn-ghost">&larr; Volver a registros</button>
+                        <h2>Registros en Curso</h2>
+                        <p class="section-desc">Registros en proceso que a&uacute;n no han sido enviados a revisi&oacute;n del Contralor.</p>
+                    </div>
+                </div>
+                <div class="records-toolbar">
+                    <div class="search-box">
+                        <svg class="icon-sm" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.9 3.5l4.3 4.3a1 1 0 01-1.4 1.4l-4.3-4.3A6 6 0 012 8z" clip-rule="evenodd"/></svg>
+                        <input type="text" id="en-curso-contralor-search" placeholder="Buscar en registros en curso...">
+                    </div>
+                    <span id="en-curso-contralor-count" class="records-count"></span>
+                </div>
+                <div id="en-curso-contralor-sections"></div>
+                <div id="en-curso-contralor-empty" class="empty-state hidden">
+                    <svg viewBox="0 0 64 64" fill="none" width="48" height="48"><rect x="8" y="12" width="48" height="40" rx="4" stroke="#CBD5E0" stroke-width="2"/><path d="M8 22h48" stroke="#CBD5E0" stroke-width="2"/><circle cx="16" cy="17" r="2" fill="#CBD5E0"/><circle cx="22" cy="17" r="2" fill="#CBD5E0"/><circle cx="28" cy="17" r="2" fill="#CBD5E0"/><path d="M24 36h16M28 42h8" stroke="#CBD5E0" stroke-width="2" stroke-linecap="round"/></svg>
+                    <p>No hay registros en curso.</p>
+                </div>
+            </section>
+
+            <!-- ========== PENDIENTES OTRA REGIONAL — Solo lectura para líder de campo C ========== -->
+            <section id="pendientes-otra-regional-section" class="hidden">
+                <div class="main-top-bar">
+                    <div>
+                        <button id="btn-pendientes-otra-regional-back" class="btn-ghost">&larr; Volver a registros</button>
+                        <h2>Pendiente de aprobaci&oacute;n otra regional</h2>
+                    </div>
+                </div>
+                <div class="records-toolbar">
+                    <div class="search-box">
+                        <svg class="icon-sm" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.9 3.5l4.3 4.3a1 1 0 01-1.4 1.4l-4.3-4.3A6 6 0 012 8z" clip-rule="evenodd"/></svg>
+                        <input type="text" id="pendientes-otra-regional-search" placeholder="Buscar en pendientes otra regional...">
+                    </div>
+                    <span id="pendientes-otra-regional-count" class="records-count"></span>
+                </div>
+                <div id="pendientes-otra-regional-sections"></div>
+                <div id="pendientes-otra-regional-empty" class="empty-state hidden">
+                    <svg viewBox="0 0 64 64" fill="none" width="48" height="48"><rect x="8" y="12" width="48" height="40" rx="4" stroke="#CBD5E0" stroke-width="2"/><path d="M8 22h48" stroke="#CBD5E0" stroke-width="2"/><circle cx="16" cy="17" r="2" fill="#CBD5E0"/><circle cx="22" cy="17" r="2" fill="#CBD5E0"/><circle cx="28" cy="17" r="2" fill="#CBD5E0"/><path d="M24 36h16M28 42h8" stroke="#CBD5E0" stroke-width="2" stroke-linecap="round"/></svg>
+                    <p>No hay registros pendientes de aprobaci&oacute;n de otra regional.</p>
+                </div>
+            </section>
+
+            <!-- ========== MIS AUDITORÍAS PENDIENTES (destinatario, no-ADMIN) ========== -->
+            <section id="mis-auditorias-section" class="hidden">
+                <div class="main-top-bar">
+                    <div>
+                        <button id="btn-mis-auditorias-back" class="btn-ghost">&larr; Volver a registros</button>
+                        <h2>Mis auditor&iacute;as pendientes</h2>
+                    </div>
+                    <span id="mis-auditorias-count" class="records-count"></span>
+                </div>
+                <div id="mis-auditorias-list"></div>
+                <div id="mis-auditorias-empty" class="empty-state hidden">
+                    <svg viewBox="0 0 64 64" fill="none" width="48" height="48"><path fill-rule="evenodd" d="M32 6a26 26 0 100 52A26 26 0 0032 6zm1 34a1 1 0 11-2 0 1 1 0 012 0zm0-18a1 1 0 10-2 0v10a1 1 0 102 0V22z" clip-rule="evenodd" stroke="#CBD5E0" stroke-width="2" fill="none"/></svg>
+                    <p>No tienes auditor&iacute;as pendientes de respuesta.</p>
+                </div>
+            </section>
+
+            <!-- ========== ADMIN: LIST MANAGEMENT ========== -->
+            <section id="admin-section" class="hidden">
+                <div class="section-header">
+                    <button id="btn-admin-back" class="btn-ghost">&larr; Volver</button>
+                    <h2>Administrar Variables de Listas</h2>
+                    <p class="section-desc">Agregue o elimine opciones de las listas desplegables del formulario.</p>
+                </div>
+
+                <div id="admin-lists-grid" class="admin-lists-grid"></div>
+
+                <!-- Detail view for a selected list -->
+                <div id="admin-detail" class="hidden">
+                    <div class="admin-detail-header">
+                        <h3 id="admin-detail-title"></h3>
+                        <span id="admin-detail-code" class="field-code"></span>
+                    </div>
+
+                    <div class="admin-add-row">
+                        <input type="text" id="admin-new-option" placeholder="Escriba la nueva opci&oacute;n..." class="admin-input">
+                        <button type="button" id="btn-add-option" class="btn-primary btn-sm">
+                            <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
+                            Agregar
+                        </button>
+                    </div>
+
+                    <div class="admin-search-row">
+                        <div class="search-box">
+                            <svg class="icon-sm" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.9 3.5l4.3 4.3a1 1 0 01-1.4 1.4l-4.3-4.3A6 6 0 012 8z" clip-rule="evenodd"/></svg>
+                            <input type="text" id="admin-search-options" placeholder="Filtrar opciones...">
+                        </div>
+                        <span id="admin-options-count" class="records-count"></span>
+                    </div>
+
+                    <div id="admin-options-list" class="admin-options-list"></div>
+                </div>
+            </section>
+
+            <!-- ========== USERS — Gestión de usuarios ========== -->
+            <section id="users-section" class="hidden">
+                <div class="section-header">
+                    <button id="btn-users-back" class="btn-ghost">&larr; Volver</button>
+                    <h2>Gesti&oacute;n de Usuarios</h2>
+                    <p class="section-desc">Administre los usuarios del sistema, sus cargos y permisos.</p>
+                </div>
+
+                <!-- Inputs de archivo ocultos para usuarios -->
+                <input type="file" id="input-cargar-users" accept=".xlsx,.xls" class="hidden">
+                <input type="file" id="input-sync-users"   accept=".xlsx,.xls" class="hidden">
+
+                <div class="users-toolbar">
+                    <div class="search-box">
+                        <svg class="icon-sm" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.9 3.5l4.3 4.3a1 1 0 01-1.4 1.4l-4.3-4.3A6 6 0 012 8z" clip-rule="evenodd"/></svg>
+                        <input type="text" id="users-search" placeholder="Buscar por nombre, usuario, cargo...">
+                    </div>
+                    <span id="users-count" class="records-count"></span>
+                    <!-- Descargar formato -->
+                    <button id="btn-formato-usuarios" class="btn-export" title="Descarga la plantilla Excel con el formato correcto para carga de usuarios">
+                        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+                        Descargar formato
+                    </button>
+                    <!-- Cargar datos -->
+                    <button id="btn-cargar-usuarios" class="btn-export" title="Agrega nuevos usuarios desde un archivo Excel con el formato correcto">
+                        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
+                        Cargar datos de Excel
+                    </button>
+                    <!-- Sincronizar (UPSERT) -->
+                    <button id="btn-sync-usuarios" class="btn-export" title="Actualiza usuarios existentes e inserta nuevos desde un Excel con el formato correcto">
+                        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/></svg>
+                        Sincronizar Excel
+                    </button>
+                    <!-- Exportar usuarios -->
+                    <button id="btn-exportar-usuarios" class="btn-export" title="Exporta los usuarios visibles a Excel">
+                        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+                        Exportar
+                    </button>
+                    <button id="btn-new-user" class="btn-primary">
+                        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
+                        Nuevo Usuario
+                    </button>
+                </div>
+
+                <div class="table-wrap">
+                    <table id="users-table" class="keralty-table">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Usuario</th>
+                                <th>Cargo</th>
+                                <th>Regional</th>
+                                <th>Permisos</th>
+                                <th>Admin</th>
+                                <th>Estado</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-tbody"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- ========== PRESTADORES — Gestión de prestadores ========== -->
+            <section id="prestadores-section" class="hidden">
+                <div class="section-header">
+                    <button id="btn-prestadores-back" class="btn-ghost">&larr; Volver</button>
+                    <h2>Gesti&oacute;n de Prestadores</h2>
+                    <p class="section-desc">Consulte, registre y edite prestadores de la base de datos.</p>
+                </div>
+
+                <!-- Inputs de archivo ocultos -->
+                <input type="file" id="input-cargar-prest" accept=".xlsx,.xls" class="hidden">
+                <input type="file" id="input-sync-prest"   accept=".xlsx,.xls" class="hidden">
+
+                <div class="users-toolbar">
+                    <div class="search-box">
+                        <svg class="icon-sm" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.9 3.5l4.3 4.3a1 1 0 01-1.4 1.4l-4.3-4.3A6 6 0 012 8z" clip-rule="evenodd"/></svg>
+                        <input type="text" id="prestadores-search" placeholder="Buscar por NIT, nombre, ciudad, regional...">
+                    </div>
+                    <span id="prestadores-count" class="records-count"></span>
+                    <!-- Descargar formato -->
+                    <button id="btn-formato-prestadores" class="btn-export" title="Descarga la plantilla Excel con el formato correcto para carga de prestadores">
+                        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+                        Descargar formato
+                    </button>
+                    <!-- Cargar datos -->
+                    <button id="btn-cargar-prestadores" class="btn-export" title="Agrega nuevos prestadores desde un archivo Excel con el formato correcto">
+                        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>
+                        Cargar datos de Excel
+                    </button>
+                    <!-- Sincronizar (UPSERT) -->
+                    <button id="btn-sync-prestadores" class="btn-export" title="Actualiza registros existentes e inserta nuevos desde un Excel con el formato correcto">
+                        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/></svg>
+                        Sincronizar Excel
+                    </button>
+                    <!-- Exportar prestadores -->
+                    <button id="btn-exportar-prestadores" class="btn-export" title="Exporta los prestadores visibles a Excel">
+                        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+                        Exportar
+                    </button>
+                    <button id="btn-new-prestador-admin" class="btn-primary">
+                        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
+                        Nuevo Prestador
+                    </button>
+                </div>
+
+                <div class="table-wrap">
+                    <table id="prestadores-table" class="keralty-table">
+                        <thead>
+                            <tr>
+                                <th>NIT</th>
+                                <th>Nombre / Raz&oacute;n Social</th>
+                                <th>Ciudad</th>
+                                <th>Regional</th>
+                                <th>Estado</th>
+                                <th>Tipo</th>
+                                <th>Fuente</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="prestadores-tbody"></tbody>
+                    </table>
+                </div>
+                <p id="prestadores-limit-note" class="section-desc hidden" style="margin-top:.6rem">
+                    Mostrando los primeros 200 resultados. Use el buscador para filtrar.
+                </p>
+            </section>
+
+            <!-- ========== FESTIVOS — Gestión de festivos ========== -->
+            <section id="festivos-section" class="hidden">
+                <div class="section-header">
+                    <button id="btn-festivos-back" class="btn-ghost">&larr; Volver</button>
+                    <h2>Festivos Colombianos</h2>
+                    <p class="section-desc">Administre el calendario de festivos usados para calcular días hábiles en los registros.</p>
+                </div>
+
+                <!-- Input oculto para carga masiva de festivos -->
+                <input type="file" id="input-cargar-festivos" accept=".xlsx,.xls" class="hidden">
+
+                <div class="users-toolbar" style="margin-bottom:1rem">
+                    <div class="search-box">
+                        <svg class="icon-sm" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.9 3.5l4.3 4.3a1 1 0 01-1.4 1.4l-4.3-4.3A6 6 0 012 8z" clip-rule="evenodd"/></svg>
+                        <input type="text" id="festivos-search" placeholder="Buscar por año o fecha...">
+                    </div>
+                    <span id="festivos-count" class="records-count"></span>
+                    <button id="btn-formato-festivos" class="btn-export" title="Descarga la plantilla Excel para carga masiva de festivos">
+                        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+                        Descargar formato
+                    </button>
+                    <button id="btn-cargar-festivos" class="btn-export" title="Carga múltiples festivos desde un archivo Excel con el formato correcto">
+                        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM10 3a1 1 0 011 1v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 111.414-1.414L9 11.586V4a1 1 0 011-1z"/></svg>
+                        Cargar desde Excel
+                    </button>
+                    <button id="btn-new-festivo" class="btn-primary">
+                        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/></svg>
+                        Agregar Festivo
+                    </button>
+                </div>
+
+                <div class="table-wrap">
+                    <table class="keralty-table" id="festivos-table">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Día de la semana</th>
+                                <th style="width:120px;text-align:center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="festivos-tbody"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Modal: Agregar/Editar festivo -->
+            <div id="festivo-modal-overlay" class="modal-overlay hidden">
+                <div class="modal-box" style="max-width:400px">
+                    <div class="modal-header">
+                        <h3 id="festivo-modal-title">Agregar Festivo</h3>
+                        <button id="btn-cancel-festivo" class="modal-close-btn">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label class="form-label">Fecha <span class="required">*</span></label>
+                            <input type="date" id="festivo-fecha" class="form-input" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer" style="display:flex;gap:.5rem;justify-content:flex-end">
+                        <button id="btn-save-festivo" class="btn-primary">Guardar</button>
+                        <button id="btn-cancel-festivo2" class="btn-ghost">Cancelar</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========== CIUDAD CODIGOS — Configuración de prefijos ========== -->
+            <section id="ciudad-codigos-section" class="hidden">
+                <div class="section-header">
+                    <button id="btn-ciudad-codigos-back" class="btn-ghost">&larr; Volver</button>
+                    <h2>C&oacute;digos de Radicaci&oacute;n y Acta</h2>
+                    <p class="section-desc">Configure los prefijos para los consecutivos autom&aacute;ticos del formulario.</p>
+                </div>
+
+                <!-- Sub-sección: Códigos de Ciudad (campo A) -->
+                <details open style="margin-bottom:1.5rem;border:1px solid var(--border);border-radius:10px;overflow:hidden">
+                    <summary style="padding:.75rem 1rem;background:var(--surface-alt,#F8FAFC);cursor:pointer;font-weight:600;display:flex;align-items:center;gap:.5rem;list-style:none">
+                        <span>&#9654;</span>
+                        C&oacute;digos de Ciudad &mdash; Consecutivo de Radicaci&oacute;n [A]
+                        <span id="ciudad-codigos-count" class="records-count" style="margin-left:auto"></span>
+                    </summary>
+                    <div style="padding:1rem">
+                        <p style="font-size:.85rem;color:#666;margin-bottom:.75rem">Prefijos por ciudad para el campo <strong>CONSECUTIVO DE RADICACI&Oacute;N [A]</strong>. Una ciudad puede tener m&uacute;ltiples c&oacute;digos.</p>
+                        <div class="users-toolbar" style="margin-bottom:.75rem">
+                            <button id="btn-nuevo-ciudad-codigo" class="btn-primary">+ Nuevo c&oacute;digo</button>
+                        </div>
+                        <div id="ciudad-codigos-table-container"></div>
+                    </div>
+                </details>
+
+            </section>
+
+            <!-- Modal: Aviso Regional IPS ≠ Ciudad Responsable -->
+            <div id="ciudad-mismatch-modal-overlay" class="modal-overlay hidden">
+                <div class="modal-box mismatch-modal-box">
+                    <div class="modal-header">
+                        <h3>Regional IPS no coincide</h3>
+                    </div>
+                    <div class="modal-body">
+                        <p id="ciudad-mismatch-msg" class="mismatch-msg"></p>
+                    </div>
+                    <div class="modal-footer mismatch-footer">
+                        <button id="btn-mismatch-proseguir" class="btn-primary mismatch-btn-full">Proseguir con Regional IPS actual</button>
+                        <div class="mismatch-secondary-row">
+                            <button id="btn-mismatch-cambiar" class="btn-outline mismatch-btn-cambiar">Cambiar Regional IPS por Ciudad Responsable</button>
+                            <button id="btn-mismatch-cancelar" class="btn-ghost">Cancelar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal: Regional IPS del NIT ≠ campo B -->
+            <div id="regional-nit-mismatch-overlay" class="modal-overlay hidden">
+                <div class="modal-box" style="max-width:480px">
+                    <div class="modal-header">
+                        <h3>Regional IPS no coincide</h3>
+                    </div>
+                    <div class="modal-body" style="display:flex;flex-direction:column;gap:1rem">
+                        <p id="regional-nit-mismatch-msg" style="line-height:1.6"></p>
+                    </div>
+                    <div class="modal-footer" style="display:flex;gap:.5rem;justify-content:flex-end;flex-wrap:wrap">
+                        <button id="btn-regional-nit-cambiar" class="btn-primary">Cambiar a regional del NIT</button>
+                        <button id="btn-regional-nit-cancelar" class="btn-ghost">Mantener actual</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal: Registro creado exitosamente -->
+            <div id="registro-creado-overlay" class="modal-overlay hidden">
+                <div class="modal-box" style="max-width:480px">
+                    <div class="modal-header" style="background:#DCFCE7;border-bottom:1px solid #BBF7D0">
+                        <svg viewBox="0 0 20 20" fill="#16A34A" width="22" height="22" style="flex-shrink:0"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                        <h3 style="color:#15803D;margin:0">Registro creado exitosamente</h3>
+                    </div>
+                    <div class="modal-body">
+                        <table class="registro-creado-table">
+                            <tbody>
+                                <tr><td class="rc-label">Consecutivo</td><td id="rc-consecutivo" class="rc-value"></td></tr>
+                                <tr><td class="rc-label">NIT Prestador</td><td id="rc-nit" class="rc-value"></td></tr>
+                                <tr><td class="rc-label">Prestador</td><td id="rc-nombre" class="rc-value"></td></tr>
+                                <tr><td class="rc-label">Responsable</td><td id="rc-responsable" class="rc-value"></td></tr>
+                                <tr><td class="rc-label">Ciudad</td><td id="rc-ciudad" class="rc-value"></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="modal-footer" style="justify-content:flex-end">
+                        <button id="btn-registro-creado-ok" class="btn-primary">Continuar &rarr;</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal: Actualización CONTRALOR exitosa -->
+            <div id="contralor-update-overlay" class="modal-overlay hidden">
+                <div class="modal-box" style="max-width:440px">
+                    <div class="modal-header" style="background:#DBEAFE;border-bottom:1px solid #BFDBFE">
+                        <svg viewBox="0 0 20 20" fill="#1D4ED8" width="22" height="22" style="flex-shrink:0"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                        <h3 style="color:#1E40AF;margin:0">Secci&oacute;n Contralor actualizada</h3>
+                    </div>
+                    <div class="modal-body">
+                        <table class="registro-creado-table">
+                            <tbody>
+                                <tr><td class="rc-label">NIT Prestador</td><td id="cu-nit" class="rc-value"></td></tr>
+                                <tr><td class="rc-label">Prestador</td><td id="cu-nombre" class="rc-value"></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="modal-footer" style="justify-content:flex-end">
+                        <button id="btn-contralor-update-ok" class="btn-primary">Aceptar</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal: Decisión de finalización de proceso (Contralor) -->
+            <div id="finalizar-proceso-overlay" class="modal-overlay hidden" style="z-index:9999">
+                <div class="modal-box" style="max-width:480px">
+                    <div class="modal-header" style="background:#D1FAE5;border-bottom:1px solid #A7F3D0">
+                        <svg viewBox="0 0 20 20" fill="#065F46" width="22" height="22" style="flex-shrink:0"><path fill-rule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                        <h3 style="color:#065F46;margin:0">Proceso de conciliaci&oacute;n finalizado</h3>
+                    </div>
+                    <div class="modal-body">
+                        <p style="margin:0 0 .75rem;color:var(--text-secondary)">
+                            Este registro cumple las condiciones de finalizaci&oacute;n del proceso de conciliaci&oacute;n:
+                        </p>
+                        <ul style="margin:0 0 1rem;padding-left:1.25rem;color:var(--text-secondary);line-height:1.7">
+                            <li><strong>CE — Estado conciliaci&oacute;n:</strong> TRAMITADO</li>
+                            <li><strong>AC — Estado mesa:</strong> CERRADO CON ACTA</li>
+                            <li><strong>BD — Estado BD:</strong> TRAMITADO</li>
+                        </ul>
+                        <p style="margin:0;color:var(--text-secondary)">
+                            &iquest;Desea <strong>finalizar el proceso</strong> y archivar este registro, o solo guardar los cambios?
+                        </p>
+                    </div>
+                    <div class="modal-footer" style="justify-content:flex-end;gap:.5rem">
+                        <button id="btn-finalizar-cancelar" class="btn-ghost">&#x2715; Cancelar</button>
+                        <button id="btn-finalizar-solo-actualizar" class="btn-outline">Solo actualizar</button>
+                        <button id="btn-finalizar-aceptar" class="btn-primary" style="background:#059669">&#10003; Aceptar y Finalizar</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal: Motivo de devolución BY (Contralor) -->
+            <div id="devolucion-motivo-overlay" class="modal-overlay hidden" style="z-index:9999">
+                <div class="modal-box" style="max-width:460px">
+                    <div class="modal-header" style="background:#FEF3C7;border-bottom:1px solid #FDE68A">
+                        <svg viewBox="0 0 20 20" fill="#D97706" width="22" height="22" style="flex-shrink:0"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                        <h3 style="color:#92400E;margin:0">Motivo de devolución</h3>
+                    </div>
+                    <div class="modal-body">
+                        <p style="margin:0 0 .75rem;color:var(--text-secondary)">Está devolviendo el registro al Gestor 2. Ingrese el motivo (obligatorio):</p>
+                        <textarea id="devolucion-motivo-input" rows="3" class="modal-textarea" placeholder="Describa el motivo de la devolución..."></textarea>
+                        <p id="devolucion-motivo-error" class="modal-error-msg">El motivo es obligatorio.</p>
+                    </div>
+                    <div class="modal-footer" style="justify-content:flex-end;gap:.5rem">
+                        <button id="btn-devolucion-cancelar" class="btn-ghost">Cancelar</button>
+                        <button id="btn-devolucion-confirmar" class="btn-primary">Confirmar devolución</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal: Motivo de cierre AC/BD/CE -->
+            <div id="cierre-motivo-overlay" class="modal-overlay hidden" style="z-index:9999">
+                <div class="modal-box" style="max-width:460px">
+                    <div class="modal-header" style="background:#FEE2E2;border-bottom:1px solid #FECACA">
+                        <svg viewBox="0 0 20 20" fill="#DC2626" width="22" height="22" style="flex-shrink:0"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                        <h3 style="color:#991B1B;margin:0">Motivo de cierre</h3>
+                    </div>
+                    <div class="modal-body">
+                        <p style="margin:0 0 .75rem;color:var(--text-secondary)">Está guardando un registro con cierre. Ingrese el motivo del cierre (obligatorio):</p>
+                        <textarea id="cierre-motivo-input" rows="3" class="modal-textarea" placeholder="Describa el motivo del cierre..."></textarea>
+                        <p id="cierre-motivo-error" class="modal-error-msg">El motivo es obligatorio.</p>
+                    </div>
+                    <div class="modal-footer" style="justify-content:flex-end;gap:.5rem">
+                        <button id="btn-cierre-motivo-cancelar" class="btn-ghost">Cancelar</button>
+                        <button id="btn-cierre-motivo-confirmar" class="btn-primary" style="background:#DC2626">Confirmar cierre</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal: Advertencia soft (campos históricos sin cambios) -->
+            <div id="soft-warnings-modal-overlay" class="modal-overlay hidden" style="z-index:9999">
+                <div class="modal-box" style="max-width:540px">
+                    <div class="modal-header" style="background:#FFFBEB;border-bottom:1px solid #FDE68A">
+                        <svg viewBox="0 0 20 20" fill="#D97706" width="22" height="22" style="flex-shrink:0"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                        <h3 style="color:#92400E;margin:0">Advertencia: datos con inconsistencias</h3>
+                    </div>
+                    <div class="modal-body">
+                        <p style="margin:0 0 .75rem;color:var(--text-secondary)">Este registro contiene los siguientes problemas en campos que <strong>no fueron modificados</strong>. Pueden ser datos migrados de otro sistema. Se recomienda revisarlos, pero puede continuar si lo desea:</p>
+                        <ul id="soft-warnings-list" style="margin:.5rem 0 0 1rem;padding:0;color:#92400E;line-height:1.6"></ul>
+                    </div>
+                    <div class="modal-footer" style="justify-content:flex-end;gap:.5rem">
+                        <button id="btn-soft-warnings-cancel" class="btn-ghost">Cancelar</button>
+                        <button id="btn-soft-warnings-continue" class="btn-primary" style="background:#D97706">Actualizar de todas formas</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal: Motivo de reapertura AC/BD/CE -->
+            <div id="reapertura-motivo-overlay" class="modal-overlay hidden" style="z-index:9999">
+                <div class="modal-box" style="max-width:460px">
+                    <div class="modal-header" style="background:#ECFDF5;border-bottom:1px solid #A7F3D0">
+                        <svg viewBox="0 0 20 20" fill="#059669" width="22" height="22" style="flex-shrink:0"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" clip-rule="evenodd"/></svg>
+                        <h3 style="color:#065F46;margin:0">Motivo de reapertura</h3>
+                    </div>
+                    <div class="modal-body">
+                        <p style="margin:0 0 .75rem;color:var(--text-secondary)">Está reabriendo un registro cerrado. Ingrese el motivo de la reapertura (obligatorio):</p>
+                        <textarea id="reapertura-motivo-input" rows="3" class="modal-textarea" placeholder="Describa el motivo de la reapertura..."></textarea>
+                        <p id="reapertura-motivo-error" class="modal-error-msg">El motivo es obligatorio.</p>
+                    </div>
+                    <div class="modal-footer" style="justify-content:flex-end;gap:.5rem">
+                        <button id="btn-reapertura-motivo-cancelar" class="btn-ghost">Cancelar</button>
+                        <button id="btn-reapertura-motivo-confirmar" class="btn-primary" style="background:#059669">Confirmar reapertura</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal: Comentario solicitud N (gestor) -->
+            <div id="solicitud-n-overlay" class="modal-overlay hidden" style="z-index:9999">
+                <div class="modal-box" style="max-width:460px">
+                    <div class="modal-header" style="background:#EFF6FF;border-bottom:1px solid #BFDBFE">
+                        <svg viewBox="0 0 20 20" fill="#2563EB" width="22" height="22" style="flex-shrink:0"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
+                        <h3 style="color:#1E3A8A;margin:0">Fecha de Solicitud antigua — requiere aprobación</h3>
+                    </div>
+                    <div class="modal-body">
+                        <p style="margin:0 0 .75rem;color:var(--text-secondary)">La Fecha de Solicitud [N] ingresada tiene m&aacute;s de 14 d&iacute;as de antig&uuml;edad. Se requiere aprobaci&oacute;n del L&iacute;der. Ingrese un comentario explicando el motivo:</p>
+                        <textarea id="solicitud-n-input" rows="3" class="modal-textarea" placeholder="Explique el motivo de la fecha antigua..."></textarea>
+                        <p id="solicitud-n-error" class="modal-error-msg">El comentario es obligatorio.</p>
+                    </div>
+                    <div class="modal-footer" style="justify-content:flex-end;gap:.5rem">
+                        <button id="btn-solicitud-n-cancelar" class="btn-ghost">Cancelar</button>
+                        <button id="btn-solicitud-n-confirmar" class="btn-primary" style="background:#2563EB">Enviar solicitud</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal: Rechazo solicitud N (líder) -->
+            <div id="rechazo-n-overlay" class="modal-overlay hidden" style="z-index:9999">
+                <div class="modal-box" style="max-width:460px">
+                    <div class="modal-header" style="background:#FEE2E2;border-bottom:1px solid #FECACA">
+                        <svg viewBox="0 0 20 20" fill="#DC2626" width="22" height="22" style="flex-shrink:0"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/></svg>
+                        <h3 style="color:#991B1B;margin:0">Rechazar solicitud — Fecha de Solicitud [N]</h3>
+                    </div>
+                    <div class="modal-body">
+                        <p style="margin:0 0 .75rem;color:var(--text-secondary)">Ingrese el motivo del rechazo (obligatorio):</p>
+                        <textarea id="rechazo-n-input" rows="3" class="modal-textarea" placeholder="Motivo del rechazo..."></textarea>
+                        <p id="rechazo-n-error" class="modal-error-msg">El motivo es obligatorio.</p>
+                    </div>
+                    <div class="modal-footer" style="justify-content:flex-end;gap:.5rem">
+                        <button id="btn-rechazo-n-cancelar" class="btn-ghost">Cancelar</button>
+                        <button id="btn-rechazo-n-confirmar" class="btn-primary" style="background:#DC2626">Confirmar rechazo</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal: Re-aprobar registro rechazado N (contralor) -->
+            <div id="reactivar-n-overlay" class="modal-overlay hidden" style="z-index:9999">
+                <div class="modal-box" style="max-width:460px">
+                    <div class="modal-header" style="background:#F3E8FF;border-bottom:1px solid #DDD6FE">
+                        <svg viewBox="0 0 20 20" fill="#7C3AED" width="22" height="22" style="flex-shrink:0"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                        <h3 style="color:#5B21B6;margin:0">Re-aprobar registro — Fecha de Solicitud [N]</h3>
+                    </div>
+                    <div class="modal-body">
+                        <p style="margin:0 0 .75rem;color:var(--text-secondary)">Ingrese el comentario de aprobaci&oacute;n (obligatorio):</p>
+                        <textarea id="reactivar-n-input" rows="3" class="modal-textarea" placeholder="Comentario de aprobación..."></textarea>
+                        <p id="reactivar-n-error" class="modal-error-msg">El comentario es obligatorio.</p>
+                    </div>
+                    <div class="modal-footer" style="justify-content:flex-end;gap:.5rem">
+                        <button id="btn-reactivar-n-cancelar" class="btn-ghost">Cancelar</button>
+                        <button id="btn-reactivar-n-confirmar" class="btn-primary" style="background:#7C3AED">Confirmar aprobación</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal: Confirmación eliminar cuota -->
+            <div id="cuota-confirm-modal-overlay" class="modal-overlay hidden">
+                <div class="modal-box" style="max-width:420px">
+                    <div class="modal-header">
+                        <h3 id="cuota-confirm-title">¿Eliminar cuota?</h3>
+                    </div>
+                    <div class="modal-body">
+                        <div id="cuota-confirm-body" style="line-height:1.7;font-size:.95rem"></div>
+                    </div>
+                    <div class="modal-footer" style="display:flex;gap:.5rem;justify-content:flex-end">
+                        <button id="btn-cuota-confirm-ok" class="btn-primary">Aceptar</button>
+                        <button id="btn-cuota-confirm-cancel" class="btn-ghost">Cancelar</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal: Confirmación cambio AC a estado cierre -->
+            <div id="ac-close-modal-overlay" class="modal-overlay hidden" style="z-index: 9999;">
+                <div class="modal-box" style="max-width:420px">
+                    <div class="modal-header" style="background:#FEF3C7;border-bottom:1px solid #FCD34D">
+                        <h3 id="ac-close-modal-title">⚠️ Advertencia</h3>
+                    </div>
+                    <div class="modal-body">
+                        <p style="line-height:1.7;font-size:.95rem">Al seleccionar este estado de cierre, la sección de <strong>finiquito (AH hasta CE)</strong> será <span style="color:#DC2626;font-weight:bold">eliminada</span>.</p>
+                        <p style="line-height:1.7;font-size:.95rem;margin-top:.5rem">¿Desea continuar?</p>
+                    </div>
+                    <div class="modal-footer" style="display:flex;gap:.5rem;justify-content:flex-end">
+                        <button id="btn-ac-close-ok" class="btn-primary" style="background:#DC2626">Sí, continuar</button>
+                        <button id="btn-ac-close-cancel" class="btn-ghost">Cancelar</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal: BD Cerrado Sin Finalización -->
+            <div id="bd-close-modal-overlay" class="modal-overlay hidden" style="z-index: 9999;">
+                <div class="modal-box" style="max-width:420px">
+                    <div class="modal-header" style="background:#FEF3C7;border-bottom:1px solid #FCD34D">
+                        <h3>⚠️ Advertencia - BD: Cerrado Sin Finalización</h3>
+                    </div>
+                    <div class="modal-body">
+                        <p style="line-height:1.7;font-size:.95rem">Al seleccionar <strong>"CERRADO SIN FINALIZACIÓN"</strong> en el campo BD, se <span style="color:#DC2626;font-weight:bold">eliminarán todos los datos</span> de la sección de finiquito desde <strong>AH hasta CE</strong> (excepto el campo BD).</p>
+                        <p style="line-height:1.7;font-size:.95rem;margin-top:.5rem">¿Desea confirmar?</p>
+                    </div>
+                    <div class="modal-footer" style="display:flex;gap:.5rem;justify-content:flex-end">
+                        <button id="btn-bd-close-ok" class="btn-primary" style="background:#DC2626">Sí, confirmar</button>
+                        <button id="btn-bd-close-cancel" class="btn-ghost">Cancelar</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal: CE Cierre -->
+            <div id="ce-close-modal-overlay" class="modal-overlay hidden" style="z-index: 9999;">
+                <div class="modal-box" style="max-width:420px">
+                    <div class="modal-header" style="background:#FEF3C7;border-bottom:1px solid #FCD34D">
+                        <h3>⚠️ Advertencia - CE: Cierre de Proceso</h3>
+                    </div>
+                    <div class="modal-body">
+                        <p style="line-height:1.7;font-size:.95rem">Al seleccionar este valor en <strong>CE (ESTADO PROCESO CONCILIACIÓN)</strong>, el formulario se bloqueará y solo podrán editarse los campos <strong>CF y CG</strong>.</p>
+                        <p style="line-height:1.7;font-size:.95rem;margin-top:.5rem">¿Desea confirmar?</p>
+                    </div>
+                    <div class="modal-footer" style="display:flex;gap:.5rem;justify-content:flex-end">
+                        <button id="btn-ce-close-ok" class="btn-primary" style="background:#DC2626">Sí, confirmar</button>
+                        <button id="btn-ce-close-cancel" class="btn-ghost">Cancelar</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal: Partir Glosa (mejorado) -->
+            <div id="partir-glosa-modal-overlay" class="modal-overlay hidden" style="z-index:9999">
+                <div class="modal-box" style="max-width:620px;box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);border-radius:10px;overflow:hidden">
+                    <div class="modal-header" style="background: linear-gradient(135deg, #0069A7 0%, #003D53 100%); color: white;">
+                        <h3 style="margin:0;font-size:1.25rem;font-weight:700;color:white">✂ Segmentar conciliación en múltiples partes</h3>
+                        <div style="font-size:.85rem; margin-top:.3rem; opacity:0.9;color:white" id="partir-radicado-info"></div>
+                    </div>
+                    <div class="modal-body" style="padding:2rem">
+                        <!-- Paso 1: seleccionar compañías disponibles -->
+                        <div id="partir-step-1">
+                            <div style="margin-bottom:1.25rem">
+                                <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem">
+                                    <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;background:#0069A7;color:white;border-radius:50%;font-weight:bold;font-size:.875rem">1</span>
+                                    <p style="margin:0; font-weight:600;font-size:1rem">¿Qué compañías desea agregar?</p>
+                                </div>
+                                <p style="margin:0; font-size:.9rem; color:#666">Seleccione las compañías disponibles (máximo 3 por operación). Las ya asignadas no aparecen.</p>
+                            </div>
+                            <div id="partir-companias-list" style="display:flex;flex-direction:column;gap:.625rem;margin-top:1rem">
+                                <!-- Se rellena dinámicamente desde app.js -->
+                            </div>
+                        </div>
+                        <!-- Paso 2: ingresar M por parte -->
+                        <div id="partir-step-2" style="display:none">
+                            <div style="margin-bottom:1.25rem">
+                                <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.5rem">
+                                    <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;background:#003D53;color:white;border-radius:50%;font-weight:bold;font-size:.875rem">2</span>
+                                    <p style="margin:0; font-weight:600;font-size:1rem">Valor de cartera por conciliación</p>
+                                </div>
+                                <p style="margin:0; font-size:.9rem; color:#666">Ingrese el valor de cartera (campo M) para cada nueva conciliación</p>
+                            </div>
+                            <div style="background:#f8f9fa;padding:1.25rem;border-radius:8px;margin-bottom:1rem">
+                                <table id="partir-partes-table" style="width:100%;border-collapse:collapse;font-size:.95rem">
+                                    <thead style="background:#e9ecef;border-bottom:2px solid #dee2e6">
+                                        <tr>
+                                            <th style="padding:.75rem;text-align:left;font-weight:600">Conciliación</th>
+                                            <th style="padding:.75rem;text-align:left;font-weight:600">Compañía</th>
+                                            <th style="padding:.75rem;text-align:left;font-weight:600">VR Cartera [M]</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                            <div style="background:#e8f5e9;padding:1rem;border-radius:6px;border-left:4px solid #4caf50;margin-bottom:.75rem;display:flex;flex-direction:column;gap:.4rem">
+                                <p style="margin:0;font-size:.9rem">
+                                    <strong>M original:</strong> <span id="partir-m-original-val" style="color:#555;font-weight:600">$ 0</span>
+                                </p>
+                                <p style="margin:0;font-size:.9rem">
+                                    <strong>Suma conciliaciones nuevas:</strong> <span id="partir-total-m" style="color:#2e7d32;font-weight:bold">$ 0</span>
+                                </p>
+                                <p style="margin:0;font-size:.9rem">
+                                    <strong>Resta para el original:</strong> <span id="partir-resto-m" style="color:#059669;font-weight:bold">$ 0</span>
+                                </p>
+                            </div>
+                            <!-- Alertas en tiempo real -->
+                            <div id="partir-alertas" style="display:none;margin-bottom:.75rem;flex-direction:column;gap:.35rem"></div>
+                        </div>
+                    </div>
+                    <div class="modal-footer" style="display:flex;gap:1rem;justify-content:space-between;border-top:1px solid #e9ecef;padding:1.5rem;background:#f8f9fa">
+                        <button id="btn-partir-cancel" class="btn-ghost" style="padding:.625rem 1.5rem;border-radius:6px;transition:all 0.2s">Cancelar</button>
+                        <div style="display:flex;gap:.75rem">
+                            <button id="btn-partir-atras" class="btn-outline hidden" style="padding:.625rem 1.5rem;border-radius:6px;border:1px solid #ddd;background:white;transition:all 0.2s">← Atrás</button>
+                            <button id="btn-partir-siguiente" class="btn-primary" style="padding:.625rem 1.5rem;transition:all 0.2s">Siguiente →</button>
+                            <button id="btn-partir-confirmar" class="btn-primary hidden" style="padding:.625rem 1.5rem;border-radius:6px;background: linear-gradient(135deg, #16A34A 0%, #15803D 100%);transition:all 0.2s;font-weight:600">✂ Confirmar segmentación</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal: Nuevo / Editar código de ciudad -->
+            <div id="ciudad-codigo-modal-overlay" class="modal-overlay hidden">
+                <div class="modal-box" style="max-width:420px">
+                    <div class="modal-header">
+                        <h3 id="ciudad-codigo-modal-title">Nuevo c&oacute;digo de ciudad</h3>
+                        <button id="btn-cancel-ciudad-codigo" class="modal-close-btn">&times;</button>
+                    </div>
+                    <div class="modal-body" style="display:flex;flex-direction:column;gap:1rem">
+                        <input type="hidden" id="ciudad-codigo-id">
+                        <div class="form-group">
+                            <label class="form-label">Ciudad <span class="required">*</span></label>
+                            <input type="text" id="ciudad-codigo-ciudad" class="form-input" placeholder="Ej: BOGOTA">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">C&oacute;digo <span class="required">*</span></label>
+                            <input type="text" id="ciudad-codigo-codigo" class="form-input" placeholder="Ej: C2101">
+                        </div>
+                        <div class="form-group">
+                            <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer">
+                                <input type="checkbox" id="ciudad-codigo-activo" checked>
+                                <span>Activo</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="modal-footer" style="display:flex;gap:.5rem;justify-content:flex-end">
+                        <button id="btn-save-ciudad-codigo" class="btn-primary">Guardar</button>
+                        <button id="btn-cancel-ciudad-codigo2" class="btn-ghost">Cancelar</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========== CAMPOS — Configuración de campos del formulario ========== -->
+            <section id="campos-section" class="hidden">
+                <div class="section-header">
+                    <button id="btn-campos-back" class="btn-ghost">&larr; Volver</button>
+                    <h2>Configuraci&oacute;n de Campos</h2>
+                    <p class="section-desc">Administre los campos del formulario: nombre, tipo, modo y rol. Los cambios se aplican inmediatamente.</p>
+                </div>
+
+                <!-- Toolbar -->
+                <div class="users-toolbar" style="margin-bottom:1rem">
+                    <div class="search-box">
+                        <svg class="icon-sm" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.9 3.5l4.3 4.3a1 1 0 01-1.4 1.4l-4.3-4.3A6 6 0 012 8z" clip-rule="evenodd"/></svg>
+                        <input type="text" id="campos-search" placeholder="Buscar por código o nombre...">
+                    </div>
+                    <span id="campos-count" class="records-count"></span>
+                </div>
+
+                <!-- 3 sections: one per role group -->
+                <div id="campos-sections-container" style="display:flex;flex-direction:column;gap:1.5rem"></div>
+            </section>
+
+            <!-- Modal: Editar campo -->
+            <div id="campo-modal-overlay" class="modal-overlay hidden">
+                <div class="modal-box" style="max-width:600px">
+                    <div class="modal-header">
+                        <h3 id="campo-modal-title">Editar Campo</h3>
+                        <button id="btn-cancel-campo" class="modal-close-btn">&times;</button>
+                    </div>
+                    <div class="modal-body" style="display:flex;flex-direction:column;gap:1rem;max-height:70vh;overflow-y:auto">
+                        <div class="form-group">
+                            <label class="form-label">Nombre del campo <span class="required">*</span></label>
+                            <input type="text" id="campo-nombre" class="form-input" placeholder="Nombre descriptivo del campo">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Roles <span class="required">*</span></label>
+                            <div style="display:flex;gap:1rem;flex-wrap:wrap;padding:.5rem 0">
+                                <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer">
+                                    <input type="checkbox" id="campo-rol-g1" value="GESTOR 1"> <span>GESTOR 1</span>
+                                </label>
+                                <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer">
+                                    <input type="checkbox" id="campo-rol-g2" value="GESTOR 2"> <span>GESTOR 2</span>
+                                </label>
+                                <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer">
+                                    <input type="checkbox" id="campo-rol-li" value="LIDER"> <span>L&Iacute;DER</span>
+                                </label>
+                                <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer">
+                                    <input type="checkbox" id="campo-rol-co" value="CONTRALOR"> <span>CONTRALOR</span>
+                                </label>
+                                <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer">
+                                    <input type="checkbox" id="campo-rol-ad" value="ADMIN"> <span>ADMIN</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- ===== REGLAS: Obligatorio ===== -->
+                        <div class="form-group" style="background:#f8f9fa;border:1px solid #e0e0e0;border-radius:8px;padding:.9rem 1rem">
+                            <label class="form-label" style="margin-bottom:.6rem">Obligatorio en</label>
+                            <div style="display:flex;flex-direction:column;gap:.5rem">
+                                <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer">
+                                    <input type="checkbox" id="campo-req-crear">
+                                    <span>Al <strong>crear</strong> registro (Gestor 1)</span>
+                                </label>
+                                <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer">
+                                    <input type="checkbox" id="campo-req-g2">
+                                    <span>Al <strong>actualizar</strong> secci&oacute;n Gestor 2 / L&iacute;der</span>
+                                </label>
+                                <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer">
+                                    <input type="checkbox" id="campo-req-contralor">
+                                    <span>Al <strong>actualizar</strong> secci&oacute;n Contralor</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- ===== REGLAS: Dependencias ===== -->
+                        <div class="form-group" style="background:#f8f9fa;border:1px solid #e0e0e0;border-radius:8px;padding:.9rem 1rem">
+                            <label class="form-label" style="margin-bottom:.4rem">Depende de otros campos</label>
+                            <p style="font-size:.82rem;color:#666;margin-bottom:.7rem">Este campo se deshabilitar&aacute; si los campos indicados no tienen valor. Escriba los c&oacute;digos separados por coma (ej: <code>I, Z</code>).</p>
+                            <input type="text" id="campo-dep-codigos" class="form-input" placeholder="Ej: I, Z  (dejar vac&iacute;o si no tiene dependencias)">
+                            <div style="display:flex;gap:1.5rem;margin-top:.6rem">
+                                <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-size:.9rem">
+                                    <input type="radio" name="campo-dep-op" id="campo-dep-and" value="AND" checked>
+                                    <span><strong>Todos</strong> deben tener valor (AND)</span>
+                                </label>
+                                <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-size:.9rem">
+                                    <input type="radio" name="campo-dep-op" id="campo-dep-or" value="OR">
+                                    <span><strong>Al menos uno</strong> debe tener valor (OR)</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Comentario</label>
+                            <textarea id="campo-comentario" class="form-input" rows="2" placeholder="Notas o descripci&oacute;n adicional para referencia interna"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer" style="display:flex;gap:.5rem;justify-content:flex-end">
+                        <button id="btn-save-campo" class="btn-primary">Guardar</button>
+                        <button id="btn-cancel-campo2" class="btn-ghost">Cancelar</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========== UMBRAL LIDER — Configuración acceso extendido LIDER→CONTRALOR ========== -->
+            <section id="umbral-lider-section" class="hidden">
+                <div class="section-header">
+                    <button id="btn-umbral-lider-back" class="btn-ghost">&larr; Volver</button>
+                    <h2>Umbral L&iacute;der &rarr; Contralor</h2>
+                    <p class="section-desc">Configure el campo de tipo Moneda y el valor umbral que habilita al L&iacute;der para ver y editar los campos del Contralor cuando <strong>BY = ENVIADA A CONTROLAR MEDICO NACIONAL</strong> y el valor del campo configurado es menor o igual al umbral.</p>
+                </div>
+
+                <details open style="margin-bottom:1.5rem;border:1px solid var(--border);border-radius:10px;overflow:hidden">
+                    <summary style="padding:.75rem 1rem;background:var(--surface-alt,#F8FAFC);cursor:pointer;font-weight:600;display:flex;align-items:center;gap:.5rem;list-style:none">
+                        <span>&#9654;</span>
+                        Configuraci&oacute;n del umbral
+                    </summary>
+                    <div style="padding:1.25rem;max-width:560px">
+                        <div class="form-group">
+                            <label class="form-label" for="umbral-campo-select">Campo de tipo Moneda</label>
+                            <select id="umbral-campo-select" class="form-input">
+                                <option value="">— Sin configurar (desactivado) —</option>
+                            </select>
+                            <p class="field-hint">Solo se muestran campos de tipo Moneda. Si no selecciona ninguno, la funcionalidad queda desactivada.</p>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="umbral-valor-input">Umbral (&le; este valor activa el acceso)</label>
+                            <input type="number" id="umbral-valor-input" class="form-input" min="0" step="0.01" placeholder="Ej: 5000000">
+                            <p class="field-hint">El L&iacute;der tendr&aacute; acceso extendido solo cuando el campo seleccionado sea menor o igual a este valor.</p>
+                        </div>
+                        <div style="display:flex;gap:.75rem;align-items:center;margin-top:.25rem">
+                            <button id="btn-umbral-lider-save" class="btn-primary">Guardar configuraci&oacute;n</button>
+                            <button id="btn-umbral-lider-desactivar" class="btn-ghost" style="color:var(--error,#e53935)">Desactivar</button>
+                        </div>
+                        <div id="umbral-lider-status" style="margin-top:1rem;padding:.75rem 1rem;border-radius:8px;display:none"></div>
+                    </div>
+                </details>
+            </section>
+
+            <!-- ========== HISTORIAL — Notificaciones ========== -->
+            <section id="historial-section" class="hidden">
+                <div class="section-header">
+                    <button id="btn-historial-back" class="btn-ghost">&larr; Volver</button>
+                    <h2>Historial de Notificaciones</h2>
+                    <p class="section-desc">Todas las alertas y comunicaciones recibidas.</p>
+                </div>
+
+                <div class="historial-toolbar">
+                    <div class="historial-filter-group">
+                        <button class="historial-filter-btn active" data-filter="todas">Todas</button>
+                        <button class="historial-filter-btn" data-filter="no_leidas">No leídas</button>
+                        <button class="historial-filter-btn" data-filter="leidas">Leídas</button>
+                    </div>
+                    <div style="display:flex;gap:8px;align-items:center">
+                        <span id="historial-count" class="records-count"></span>
+                        <button id="btn-historial-mark-all" class="btn-ghost" style="font-size:.8rem">Marcar todas leídas</button>
+                    </div>
+                </div>
+
+                <div id="historial-list" class="historial-list">
+                    <p class="notif-empty">Cargando...</p>
+                </div>
+            </section>
+
+            <!-- ========== SOLICITUDES ========== -->
+            <section id="solicitudes-section" class="hidden">
+                <div class="section-header">
+                    <button id="btn-solicitudes-back" class="btn-ghost">&larr; Volver</button>
+                    <h2>Solicitudes</h2>
+                    <p class="section-desc">Historial de solicitudes enviadas al administrador.</p>
+                </div>
+
+                <!-- Tipo de solicitud -->
+                <div class="historial-toolbar" style="margin-bottom:.5rem">
+                    <div class="historial-filter-group" id="solicitudes-tipo-group">
+                        <button class="historial-filter-btn active" data-sol-tipo="prestadores">Prestadores</button>
+                        <button class="historial-filter-btn" data-sol-tipo="gestores">Gestores</button>
+                    </div>
+                </div>
+
+                <div class="historial-toolbar">
+                    <div class="historial-filter-group" id="solicitudes-filter-group">
+                        <button class="historial-filter-btn active" data-sol-filter="todas">Todas</button>
+                        <button class="historial-filter-btn" data-sol-filter="pendiente">Pendientes</button>
+                        <button class="historial-filter-btn" data-sol-filter="realizado">Realizadas</button>
+                        <button class="historial-filter-btn" data-sol-filter="denegado">Denegadas</button>
+                    </div>
+                    <span id="solicitudes-count" class="records-count"></span>
+                </div>
+
+                <div id="solicitudes-list" class="historial-list">
+                    <p class="notif-empty">Cargando...</p>
+                </div>
+            </section>
+
+            <!-- Filtros compartidos: se inyectan dinámicamente en la sección activa via showSection() -->
+            <div id="main-filters" class="main-filters hidden">
+                <select id="filter-gestor" class="filter-select">
+                    <option value="">— Todos los gestores —</option>
+                </select>
+                <select id="filter-region" class="filter-select hidden">
+                    <option value="">— Todas las regiones —</option>
+                </select>
+                <select id="filter-lider" class="filter-select hidden">
+                    <option value="">— Todos los líderes —</option>
+                </select>
+            </div>
+
+            <!-- ========== FORM — Crear / Editar registro ========== -->
+            <section id="form-section" class="hidden">
+                <div class="section-header">
+                    <button id="btn-back" class="btn-ghost">&larr; Volver a registros</button>
+                    <h2 id="form-title">Nuevo Registro</h2>
+                </div>
+
+                <!-- Banner de edición -->
+                <div id="edit-banner" class="edit-banner hidden">
+                    <div class="edit-banner-info">
+                        <svg viewBox="0 0 20 20" fill="currentColor" width="18" height="18"><path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/></svg>
+                        <span id="edit-banner-text">Editando registro</span>
+                    </div>
+                </div>
+
+
+                <div class="field-search-bar">
+                    <div class="field-search-wrap">
+                        <svg class="field-search-icon" viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+                            <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/>
+                        </svg>
+                        <input type="text" id="field-search" placeholder="Buscar campo por nombre o código..." autocomplete="off">
+                        <button type="button" id="field-search-clear" class="field-search-clear hidden" title="Limpiar">&times;</button>
+                    </div>
+                    <span id="field-search-count" class="field-search-count"></span>
+                </div>
+
+                <!-- Tarjetas de estado del registro -->
+                <div id="form-cards-container" class="form-cards-container"></div>
+
+                <form id="dynamic-form"></form>
+
+                <div class="form-actions">
+                    <button type="button" id="btn-submit" class="btn-primary">Guardar Registro</button>
+                    <button type="button" id="btn-reabrir-registro" class="btn-primary hidden" style="background:#059669;border-color:#047857">&#128275; Reabrir Registro</button>
+                    <button type="button" id="btn-restore-all" class="btn-outline hidden">&#x21BA; Restaurar cambios</button>
+                    <button type="button" id="btn-clear" class="btn-outline" style="display:none">Limpiar Campos</button>
+                    <button type="button" id="btn-partir-glosa" class="btn-outline hidden" style="color: #0069A7; border-color: #0069A7;">✂ Segmentar conciliación</button>
+                    <button type="button" id="btn-aprobar-n" class="btn-primary hidden" style="background:#059669;border-color:#047857">&#10003; Aprobar Solicitud N</button>
+                    <button type="button" id="btn-rechazar-n" class="btn-primary hidden" style="background:#dc2626;border-color:#b91c1c">&#10007; Rechazar Solicitud N</button>
+                    <button type="button" id="btn-cancelar-n" class="btn-outline hidden" style="color:#d97706;border-color:#d97706">&#128683; Cancelar Solicitud</button>
+                    <button type="button" id="btn-reactivar-n" class="btn-primary hidden" style="background:#7c3aed;border-color:#6d28d9">&#9654; Re-aprobar Registro</button>
+                    <button type="button" id="btn-auditoria-form" class="btn-outline hidden" style="color:#1D4ED8;border-color:#1D4ED8">&#128270; Auditor&iacute;a</button>
+                </div>
+            </section>
+
+            <!-- ========== AUDITORÍAS ACTIVAS (ADMIN) ========== -->
+            <section id="auditorias-activas-section" class="hidden">
+                <div class="section-header">
+                    <button id="btn-auditorias-activas-back" class="btn-ghost">&larr; Volver</button>
+                    <h2>Auditor&iacute;as activas</h2>
+                    <p class="section-desc">Registros con auditor&iacute;as pendientes de resoluci&oacute;n.</p>
+                </div>
+                <div id="auditorias-activas-list" class="historial-list">
+                    <p class="notif-empty">Cargando...</p>
+                </div>
+            </section>
+
+            <!-- ========== AUDIT LOG ========== -->
+            <section id="audit-section" class="hidden">
+                <div class="section-header">
+                    <button id="btn-audit-back" class="btn-ghost">&larr; Volver</button>
+                    <h2>Auditor&iacute;a de Cambios</h2>
+                    <p class="section-desc">Historial de modificaciones y eliminaciones de registros.</p>
+                </div>
+
+                <!-- Filters -->
+                <div class="audit-filters">
+                    <div class="search-box">
+                        <svg class="icon-sm" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.9 3.5l4.3 4.3a1 1 0 01-1.4 1.4l-4.3-4.3A6 6 0 012 8z" clip-rule="evenodd"/></svg>
+                        <input type="text" id="audit-filter-usuario" placeholder="Filtrar por usuario...">
+                    </div>
+                    <select id="audit-filter-accion" class="form-select-sm">
+                        <option value="">Todas las acciones</option>
+                        <option value="modificacion">Modificaci&oacute;n</option>
+                        <option value="eliminacion">Eliminaci&oacute;n</option>
+                    </select>
+                    <select id="audit-filter-tipo" class="form-select-sm">
+                        <option value="">Todos los tipos</option>
+                        <option value="autorizado">Solo autorizados</option>
+                        <option value="tercero">Solo terceros</option>
+                    </select>
+                    <input type="text" id="audit-filter-registro" placeholder="Consecutivo..." class="form-input-sm" style="width:130px">
+                    <button id="btn-audit-buscar" class="btn-primary btn-sm">Buscar</button>
+                    <button id="btn-audit-export" class="btn-export btn-sm" title="Exportar registros filtrados a Excel">
+                        <svg viewBox="0 0 20 20" fill="currentColor" width="15" height="15"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+                        Exportar
+                    </button>
+                    <span id="audit-count" class="records-count"></span>
+                </div>
+
+                <div id="audit-table-container"></div>
+                <div id="audit-pagination" class="audit-pagination"></div>
+            </section>
+
+            <!-- ========== SOLICITUDES DE ACCESO SSO ========== -->
+            <section id="sso-access-requests-section" class="hidden">
+                <div class="section-header">
+                    <button id="btn-sso-access-requests-back" class="btn-ghost">&larr; Volver</button>
+                    <h2>Solicitudes de Acceso SSO</h2>
+                    <p class="section-desc">Usuarios que intentaron ingresar con Microsoft EntraID pero no est&aacute;n registrados en el sistema.</p>
+                </div>
+
+                <div class="audit-filters">
+                    <select id="sso-ar-filter-estado" class="form-select-sm">
+                        <option value="">Todos los estados</option>
+                        <option value="pendiente">Pendientes</option>
+                        <option value="visto">Vistos</option>
+                    </select>
+                    <button id="btn-sso-ar-buscar" class="btn-primary btn-sm">Filtrar</button>
+                    <span id="sso-ar-count" class="records-count"></span>
+                </div>
+
+                <div id="sso-ar-table-container"></div>
+            </section>
+        </main>
+        </div><!-- end .app-body -->
+    </div>
+
+    <!-- Modal: Auditoría de registro (ADMIN crea / todos ven historial) -->
+    <div id="auditoria-registro-overlay" class="modal-overlay hidden" style="z-index:9999">
+        <div class="modal-box" style="max-width:620px;max-height:85vh;display:flex;flex-direction:column">
+            <div class="modal-header" style="background:#EFF6FF;border-bottom:1px solid #BFDBFE;flex-shrink:0">
+                <svg viewBox="0 0 20 20" fill="#1D4ED8" width="22" height="22" style="flex-shrink:0"><path fill-rule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5C2.056 5.649 2 6.319 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.35-.166-2.001A11.954 11.954 0 0110 1.944zM11 14a1 1 0 11-2 0 1 1 0 012 0zm0-7a1 1 0 10-2 0v3a1 1 0 102 0V7z" clip-rule="evenodd"/></svg>
+                <h3 style="color:#1D4ED8;margin:0" id="auditoria-modal-title">Auditor&iacute;a del Registro</h3>
+                <button id="auditoria-modal-close" class="modal-close-btn" style="margin-left:auto">&times;</button>
+            </div>
+            <div class="modal-body" style="overflow-y:auto;flex:1">
+                <div id="auditoria-historial-container"></div>
+                <div id="auditoria-nueva-container"></div>
+            </div>
+            <div class="modal-footer" style="flex-shrink:0;justify-content:flex-end;gap:.5rem">
+                <button id="btn-auditoria-cancelar" class="btn-ghost">Cerrar</button>
+                <button id="btn-auditoria-enviar" class="btn-primary" style="display:none">Enviar Auditor&iacute;a</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Responder auditoría (destinatario) -->
+    <div id="auditoria-responder-overlay" class="modal-overlay hidden" style="z-index:9999">
+        <div class="modal-box" style="max-width:500px">
+            <div class="modal-header" style="background:#F0FDF4;border-bottom:1px solid #BBF7D0">
+                <svg viewBox="0 0 20 20" fill="#059669" width="22" height="22" style="flex-shrink:0"><path fill-rule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5C2.056 5.649 2 6.319 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.35-.166-2.001A11.954 11.954 0 0110 1.944zM11 14a1 1 0 11-2 0 1 1 0 012 0zm0-7a1 1 0 10-2 0v3a1 1 0 102 0V7z" clip-rule="evenodd"/></svg>
+                <h3 style="color:#065F46;margin:0">Responder Auditor&iacute;a</h3>
+                <button id="auditoria-responder-close" class="modal-close-btn" style="margin-left:auto">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="auditoria-responder-info"></div>
+                <label style="font-weight:400;display:block;margin-bottom:.4rem;margin-top:.75rem;color:var(--input-label)">Comentario <span style="color:var(--text-muted)">(opcional)</span>:</label>
+                <textarea id="auditoria-responder-comentario" rows="3" class="modal-textarea" placeholder="Agregue un comentario si lo desea..."></textarea>
+            </div>
+            <div class="modal-footer" style="justify-content:flex-end;gap:.5rem">
+                <button id="btn-auditoria-responder-cancelar" class="btn-ghost">Cancelar</button>
+                <button id="btn-auditoria-en-proceso" class="btn-outline" style="color:#92400E;border-color:#D97706">En proceso</button>
+                <button id="btn-auditoria-terminado" class="btn-primary" style="background:#059669;border-color:#047857">Terminado</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Nuevo Prestador -->
+    <div id="modal-overlay" class="modal-overlay hidden">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Prestador no encontrado</h3>
+                <button id="modal-close" class="modal-close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-desc">El NIT ingresado no existe en la base de datos. Puede registrar un nuevo prestador.</p>
+                <form id="new-prestador-form" autocomplete="off">
+                    <div class="modal-field">
+                        <label for="np-nit">NIT *</label>
+                        <input type="text" id="np-nit" readonly>
+                    </div>
+                    <div class="modal-field">
+                        <label for="np-dv">D&iacute;gito de verificaci&oacute;n</label>
+                        <input type="text" id="np-dv" maxlength="1">
+                    </div>
+                    <div class="modal-field">
+                        <label for="np-nombre">Nombre / Raz&oacute;n Social *</label>
+                        <input type="text" id="np-nombre" required>
+                    </div>
+                    <div class="modal-field">
+                        <label for="np-ciudad">Ciudad</label>
+                        <input type="text" id="np-ciudad">
+                    </div>
+                    <div class="modal-field">
+                        <label for="np-departamento">Departamento</label>
+                        <input type="text" id="np-departamento">
+                    </div>
+                    <div class="modal-field">
+                        <label for="np-regional">Regional</label>
+                        <input type="text" id="np-regional">
+                    </div>
+                    <div class="modal-field">
+                        <label for="np-direccion">Direcci&oacute;n</label>
+                        <input type="text" id="np-direccion">
+                    </div>
+                    <div class="modal-field">
+                        <label for="np-telefono">Tel&eacute;fono</label>
+                        <input type="text" id="np-telefono">
+                    </div>
+                    <div class="modal-field">
+                        <label for="np-correo">Correo electr&oacute;nico</label>
+                        <input type="email" id="np-correo">
+                    </div>
+                    <div class="modal-field">
+                        <label for="np-tipo">Tipo de prestador</label>
+                        <input type="text" id="np-tipo">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="btn-cancel-prestador" class="btn-outline">Cancelar</button>
+                <button type="button" id="btn-save-prestador" class="btn-primary">Guardar Prestador</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Crear / Editar Usuario -->
+    <div id="user-modal-overlay" class="modal-overlay hidden">
+        <div class="modal-card modal-card-lg">
+            <div class="modal-header">
+                <h3 id="user-modal-title">Nuevo Usuario</h3>
+                <button id="user-modal-close" class="modal-close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="user-form" autocomplete="off">
+                    <div class="user-form-grid">
+                        <div class="modal-field">
+                            <label for="uf-nombre">Nombre completo *</label>
+                            <input type="text" id="uf-nombre" required placeholder="Nombre y apellidos">
+                        </div>
+                        <div class="modal-field">
+                            <label for="uf-usuario">Usuario (correo) *</label>
+                            <input type="text" id="uf-usuario" required placeholder="correo@epssanitas.com">
+                        </div>
+                        <div class="modal-field">
+                            <label for="uf-cedula">C&eacute;dula</label>
+                            <input type="text" id="uf-cedula" placeholder="N&uacute;mero de c&eacute;dula">
+                        </div>
+                        <div class="modal-field">
+                            <label for="uf-cargo">Cargo</label>
+                            <select id="uf-cargo">
+                                <option value="">-- Seleccione --</option>
+                                <option value="GESTOR DE CONCILIACIONES">Gestor de Conciliaciones</option>
+                                <option value="DIRECTOR REGIONAL DE CONCILIACIONES">Director Regional de Conciliaciones</option>
+                                <option value="CONTRALOR MÉDICO GENERAL">Contralor M&eacute;dico General</option>
+                                <option value="Otro">Otro</option>
+                            </select>
+                        </div>
+                        <div class="modal-field">
+                            <label for="uf-regional">Regional</label>
+                            <select id="uf-regional">
+                                <option value="">-- Seleccione --</option>
+                                <option value="BARRANQUILLA">Barranquilla</option>
+                                <option value="BOGOTA">Bogot&aacute;</option>
+                                <option value="BUCARAMANGA">Bucaramanga</option>
+                                <option value="CALI">Cali</option>
+                                <option value="CENTRO ORIENTE">Centro Oriente</option>
+                                <option value="MEDELLIN">Medell&iacute;n</option>
+                                <option value="ELITE">Elite</option>
+                                <option value="NACIONAL">Nacional</option>
+                            </select>
+                        </div>
+                        <div class="modal-field">
+                            <label for="uf-superior">Superior inmediato</label>
+                            <select id="uf-superior">
+                                <option value="">-- Seleccione regional y permiso --</option>
+                            </select>
+                        </div>
+                        <div class="modal-field">
+                            <label for="uf-password">Contrase&ntilde;a <span id="uf-pass-hint" class="field-comment">(requerida al crear)</span></label>
+                            <input type="password" id="uf-password" placeholder="Dejar vac&iacute;o para no cambiar">
+                        </div>
+                    </div>
+
+                    <div class="user-form-perms" id="user-form-perms-wrap">
+                        <p class="user-form-section-title">Permisos del sistema</p>
+                        <div class="user-perms-grid">
+                            <label class="perm-check"><input type="checkbox" id="uf-g1"> <span>GESTOR 1</span><small>Puede crear registros</small></label>
+                            <label class="perm-check"><input type="checkbox" id="uf-g2"> <span>GESTOR 2</span><small>Edita campos de su secci&oacute;n</small></label>
+                            <label class="perm-check"><input type="checkbox" id="uf-lider"> <span>L&Iacute;DER</span><small>Ve y edita campos de Gestor 1</small></label>
+                            <label class="perm-check"><input type="checkbox" id="uf-contralor"> <span>CONTRALOR</span><small>Ve y edita todos los campos</small></label>
+                            <label class="perm-check perm-admin"><input type="checkbox" id="uf-admin"> <span>ADMINISTRADOR</span><small>Acceso total al sistema</small></label>
+                        </div>
+                        <label class="perm-check perm-activo">
+                            <input type="checkbox" id="uf-activo" checked>
+                            <span>Usuario activo</span><small>Puede iniciar sesi&oacute;n</small>
+                        </label>
+                        <label class="perm-check perm-local-auth">
+                            <input type="checkbox" id="uf-local-auth">
+                            <span>Login con contrase&ntilde;a</span><small>Permite autenticaci&oacute;n local (usuario + contrase&ntilde;a)</small>
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="btn-cancel-user" class="btn-outline">Cancelar</button>
+                <button type="button" id="btn-save-user" class="btn-primary">Guardar Usuario</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Crear / Editar Prestador (Admin) -->
+    <div id="prest-modal-overlay" class="modal-overlay hidden">
+        <div class="modal-card modal-card-xl">
+            <div class="modal-header">
+                <h3 id="prest-modal-title">Nuevo Prestador</h3>
+                <button id="prest-modal-close" class="modal-close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="prest-admin-form" autocomplete="off">
+
+                    <!-- IDENTIFICACIÓN -->
+                    <div class="pf-section-title">Identificaci&oacute;n</div>
+                    <div class="user-form-grid">
+                        <div class="modal-field">
+                            <label for="pf-nit">NIT *</label>
+                            <input type="text" id="pf-nit" required placeholder="Ej: 900123456">
+                        </div>
+                        <div class="modal-field">
+                            <label for="pf-dv">D&iacute;gito verificaci&oacute;n</label>
+                            <input type="text" id="pf-dv" maxlength="2" placeholder="Ej: 5">
+                        </div>
+                        <div class="modal-field">
+                            <label for="pf-tipo-id">Tipo ID</label>
+                            <input type="text" id="pf-tipo-id" placeholder="Ej: NI, CC">
+                        </div>
+                        <div class="modal-field">
+                            <label for="pf-tipo-persona">Tipo persona</label>
+                            <input type="text" id="pf-tipo-persona" placeholder="Ej: Juridico, Natural">
+                        </div>
+                        <div class="modal-field" style="grid-column: 1 / -1">
+                            <label for="pf-nombre">Nombre / Raz&oacute;n Social *</label>
+                            <input type="text" id="pf-nombre" required placeholder="Nombre del prestador">
+                        </div>
+                        <div class="modal-field">
+                            <label for="pf-codigo">C&oacute;digo sucursal</label>
+                            <input type="text" id="pf-codigo" placeholder="C&oacute;digo interno">
+                        </div>
+                        <div class="modal-field">
+                            <label for="pf-cod-habilitacion">C&oacute;d. habilitaci&oacute;n</label>
+                            <input type="text" id="pf-cod-habilitacion" placeholder="C&oacute;d. habilitaci&oacute;n sucursal">
+                        </div>
+                        <div class="modal-field">
+                            <label for="pf-habilitacion-sede">Habilitaci&oacute;n sede</label>
+                            <input type="text" id="pf-habilitacion-sede" placeholder="Habilitaci&oacute;n sede">
+                        </div>
+                        <div class="modal-field">
+                            <label for="pf-relacion-eps">Relaci&oacute;n EPS</label>
+                            <input type="text" id="pf-relacion-eps" placeholder="Ej: ADSCRITO">
+                        </div>
+                    </div>
+
+                    <!-- EMPRESA / PLAN -->
+                    <div class="pf-section-title">Empresa / Plan</div>
+                    <div class="user-form-grid">
+                        <div class="modal-field">
+                            <label for="pf-cod-compania">C&oacute;d. Compa&ntilde;&iacute;a</label>
+                            <input type="text" id="pf-cod-compania" placeholder="C&oacute;digo compan&iacute;a">
+                        </div>
+                        <div class="modal-field">
+                            <label for="pf-compania">Compa&ntilde;&iacute;a</label>
+                            <input type="text" id="pf-compania" placeholder="Nombre compan&iacute;a">
+                        </div>
+                        <div class="modal-field">
+                            <label for="pf-cod-plan">C&oacute;d. Plan</label>
+                            <input type="text" id="pf-cod-plan" placeholder="C&oacute;digo del plan">
+                        </div>
+                        <div class="modal-field">
+                            <label for="pf-desc-plan">Descripci&oacute;n plan</label>
+                            <input type="text" id="pf-desc-plan" placeholder="Descripci&oacute;n del plan">
+                        </div>
+                        <div class="modal-field">
+                            <label for="pf-forma-contratacion">Forma contrataci&oacute;n</label>
+                            <input type="text" id="pf-forma-contratacion" placeholder="Ej: EVENTO, CAPITACION">
+                        </div>
+                        <div class="modal-field">
+                            <label for="pf-tipo-convenio">Tipo convenio</label>
+                            <input type="text" id="pf-tipo-convenio" placeholder="Tipo de convenio">
+                        </div>
+                        <div class="modal-field">
+                            <label for="pf-numero-contrato">N&uacute;mero contrato</label>
+                            <input type="text" id="pf-numero-contrato" placeholder="N&uacute;mero contrato">
+                        </div>
+                        <div class="modal-field">
+                            <label for="pf-fecha-inicio-convenio">Fecha inicio convenio</label>
+                            <input type="text" id="pf-fecha-inicio-convenio" placeholder="dd/mm/aaaa">
+                        </div>
+                        <div class="modal-field">
+                            <label for="pf-fecha-fin-convenio">Fecha fin convenio</label>
+                            <input type="text" id="pf-fecha-fin-convenio" placeholder="dd/mm/aaaa">
+                        </div>
+                    </div>
+
+                    <!-- CLASIFICACIÓN -->
+                    <div class="pf-section-title">Clasificaci&oacute;n</div>
+                    <div class="user-form-grid">
+                        <div class="modal-field">
+                            <label for="pf-tipo">Tipo de prestador</label>
+                            <input type="text" id="pf-tipo" placeholder="Ej: IPS Red de Direccionamiento">
+                        </div>
+                        <div class="modal-field">
+                            <label for="pf-naturaleza-ips">Naturaleza IPS</label>
+                            <input type="text" id="pf-naturaleza-ips" placeholder="Ej: Privada, P&uacute;blica">
+                        </div>
+                        <div class="modal-field">
+                            <label for="pf-tipo-atencion">Tipo atenci&oacute;n</label>
+                            <input type="text" id="pf-tipo-atencion" placeholder="Tipo de atenci&oacute;n">
+                        </div>
+                        <div class="modal-field">
+                            <label for="pf-especialidad">Especialidad (c&oacute;d.)</label>
+                            <input type="text" id="pf-especialidad" placeholder="C&oacute;digo especialidad">
+                        </div>
+                        <div class="modal-field">
+                            <label for="pf-desc-especialidad">Descripci&oacute;n especialidad</label>
+                            <input type="text" id="pf-desc-especialidad" placeholder="Descripci&oacute;n">
+                        </div>
+                        <div class="modal-field">
+                            <label for="pf-estado">Estado</label>
+                            <select id="pf-estado">
+                                <option value="ACTIVO">Activo</option>
+                                <option value="INACTIVO">Inactivo</option>
+                            </select>
+                        </div>
+                        <div class="modal-field">
+                            <label for="pf-premium">Premium</label>
+                            <input type="text" id="pf-premium" placeholder="Premium">
+                        </div>
+                        <div class="modal-field">
+                            <label for="pf-glosa-sostenida">Glosa sostenida</label>
+                            <input type="text" id="pf-glosa-sostenida" placeholder="Glosa sostenida">
+                        </div>
+                        <div class="modal-field">
+                            <label for="pf-prioridad-servicio">Prioridad de servicio</label>
+                            <input type="text" id="pf-prioridad-servicio" placeholder="Prioridad">
+                        </div>
+                    </div>
+
+                    <!-- UBICACIÓN -->
+                    <div class="pf-section-title">Ubicaci&oacute;n</div>
+                    <div class="user-form-grid">
+                        <div class="modal-field">
+                            <label for="pf-ciudad">Ciudad</label>
+                            <input type="text" id="pf-ciudad" placeholder="Ciudad">
+                        </div>
+                        <div class="modal-field">
+                            <label for="pf-departamento">Departamento</label>
+                            <input type="text" id="pf-departamento" placeholder="Departamento">
+                        </div>
+                        <div class="modal-field">
+                            <label for="pf-regional">Regional</label>
+                            <select id="pf-regional">
+                                <option value="">-- Seleccione --</option>
+                                <option value="BARRANQUILLA">Barranquilla</option>
+                                <option value="BOGOTA">Bogot&aacute;</option>
+                                <option value="BUCARAMANGA">Bucaramanga</option>
+                                <option value="CALI">Cali</option>
+                                <option value="CENTRO ORIENTE">Centro Oriente</option>
+                                <option value="MEDELLIN">Medell&iacute;n</option>
+                                <option value="ELITE">Elite</option>
+                                <option value="NACIONAL">Nacional</option>
+                            </select>
+                        </div>
+                        <div class="modal-field" style="grid-column: 1 / -1">
+                            <label for="pf-direccion">Direcci&oacute;n</label>
+                            <input type="text" id="pf-direccion" placeholder="Direcci&oacute;n">
+                        </div>
+                    </div>
+
+                    <!-- CONTACTO -->
+                    <div class="pf-section-title">Contacto</div>
+                    <div class="user-form-grid">
+                        <div class="modal-field">
+                            <label for="pf-telefono">Tel&eacute;fono 1</label>
+                            <input type="text" id="pf-telefono" placeholder="Tel&eacute;fono principal">
+                        </div>
+                        <div class="modal-field">
+                            <label for="pf-extension-1">Extensi&oacute;n 1</label>
+                            <input type="text" id="pf-extension-1" placeholder="Ext.">
+                        </div>
+                        <div class="modal-field">
+                            <label for="pf-telefono-2">Tel&eacute;fono 2</label>
+                            <input type="text" id="pf-telefono-2" placeholder="Tel&eacute;fono alternativo">
+                        </div>
+                        <div class="modal-field">
+                            <label for="pf-extension-2">Extensi&oacute;n 2</label>
+                            <input type="text" id="pf-extension-2" placeholder="Ext.">
+                        </div>
+                        <div class="modal-field" style="grid-column: 1 / -1">
+                            <label for="pf-correo">Correo electr&oacute;nico</label>
+                            <input type="email" id="pf-correo" placeholder="correo@prestador.com">
+                        </div>
+                    </div>
+
+                    <!-- HABILITACIÓN / PORTABILIDAD -->
+                    <div class="pf-section-title">Habilitaci&oacute;n y Portabilidad</div>
+                    <div class="user-form-grid">
+                        <div class="modal-field">
+                            <label for="pf-fecha-inicio-hab">Fecha inicio habilitaci&oacute;n</label>
+                            <input type="text" id="pf-fecha-inicio-hab" placeholder="dd/mm/aaaa">
+                        </div>
+                        <div class="modal-field">
+                            <label for="pf-fecha-vencimiento-hab">Fecha vencimiento habilitaci&oacute;n</label>
+                            <input type="text" id="pf-fecha-vencimiento-hab" placeholder="dd/mm/aaaa">
+                        </div>
+                        <div class="modal-field">
+                            <label for="pf-fecha-inicio-port">Fecha inicio portabilidad</label>
+                            <input type="text" id="pf-fecha-inicio-port" placeholder="dd/mm/aaaa">
+                        </div>
+                        <div class="modal-field">
+                            <label for="pf-fecha-fin-port">Fecha fin portabilidad</label>
+                            <input type="text" id="pf-fecha-fin-port" placeholder="dd/mm/aaaa">
+                        </div>
+                    </div>
+
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="btn-cancel-prest-admin" class="btn-outline">Cancelar</button>
+                <button type="button" id="btn-save-prest-admin" class="btn-primary">Guardar Prestador</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Snackbar / Toast — Figma Keralty spec -->
+    <div id="toast" class="toast hidden" role="alert" aria-live="polite">
+        <span id="toast-icon" class="toast-icon" aria-hidden="true"></span>
+        <div class="toast-body">
+            <span id="toast-title" class="toast-title"></span>
+            <span id="toast-desc" class="toast-description"></span>
+        </div>
+        <div class="toast-separator" aria-hidden="true"></div>
+        <button id="toast-close" class="toast-close" aria-label="Cerrar notificación">&times;</button>
+    </div>
+
+    <!-- ========== MODAL: Solicitar creación de prestador ========== -->
+    <div id="solicitud-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+        <div class="modal-box solicitud-modal-box">
+            <div class="modal-header">
+                <h3>Solicitar creaci&oacute;n de prestador</h3>
+                <button id="solicitud-modal-close" class="modal-close-btn" title="Cerrar">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="solicitud-intro">
+                    El NIT <strong id="solicitud-nit-display"></strong> no existe en el sistema.<br>
+                    Env&iacute;a una solicitud al administrador para que lo cree.
+                </p>
+                <div class="modal-field">
+                    <label for="solicitud-nit">NIT</label>
+                    <input type="text" id="solicitud-nit" readonly>
+                </div>
+                <div class="modal-field">
+                    <label for="solicitud-comentario">Comentario <span style="color:var(--text-muted);font-weight:400">(opcional)</span></label>
+                    <textarea id="solicitud-comentario" rows="3"
+                        placeholder="Nombre del prestador, ciudad, informaci&oacute;n adicional..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="solicitud-cancel" class="btn-ghost">Cancelar</button>
+                <button id="solicitud-submit" class="btn-primary">Enviar solicitud</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== MODAL: Denegar solicitud (comentario obligatorio) ========== -->
+    <div id="denegar-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+        <div class="modal-box" style="max-width:440px">
+            <div class="modal-header">
+                <h3>Denegar solicitud</h3>
+                <button id="denegar-modal-close" class="modal-close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>NIT solicitado: <strong id="denegar-nit-display"></strong></p>
+                <div class="modal-field">
+                    <label for="denegar-comentario">Motivo de denegaci&oacute;n <span style="color:var(--error,#e53e3e)">*</span></label>
+                    <textarea id="denegar-comentario" rows="3" placeholder="Explica por qu&eacute; se deniega la solicitud..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="denegar-cancel" class="btn-ghost">Cancelar</button>
+                <button id="denegar-confirm" class="btn-danger">Confirmar denegación</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== MODAL: Solicitar creación de gestor ========== -->
+    <div id="sol-gestor-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+        <div class="modal-box" style="max-width:480px">
+            <div class="modal-header">
+                <h3>Solicitar creaci&oacute;n de gestor</h3>
+                <button id="sol-gestor-modal-close" class="modal-close-btn" title="Cerrar">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="solicitud-intro">Completa los datos del nuevo gestor. El administrador recibir&aacute; la solicitud y la gestionar&aacute; manualmente.</p>
+                <div class="modal-field">
+                    <label for="sg-nombre">Nombre completo <span style="color:var(--error,#e53e3e)">*</span></label>
+                    <input type="text" id="sg-nombre" placeholder="Ej: Juan P&eacute;rez G&oacute;mez">
+                </div>
+                <div class="modal-field">
+                    <label for="sg-correo">Correo electr&oacute;nico <span style="color:var(--error,#e53e3e)">*</span></label>
+                    <input type="email" id="sg-correo" placeholder="ejemplo@sanitas.com.co">
+                </div>
+                <div class="modal-field">
+                    <label for="sg-regional">Regional <span style="color:var(--error,#e53e3e)">*</span></label>
+                    <select id="sg-regional">
+                        <option value="">-- Seleccione --</option>
+                        <option value="BARRANQUILLA">Barranquilla</option>
+                        <option value="BOGOTA">Bogot&aacute;</option>
+                        <option value="BUCARAMANGA">Bucaramanga</option>
+                        <option value="CALI">Cali</option>
+                        <option value="CENTRO ORIENTE">Centro Oriente</option>
+                        <option value="MEDELLIN">Medell&iacute;n</option>
+                        <option value="ELITE">Elite</option>
+                        <option value="NACIONAL">Nacional</option>
+                    </select>
+                </div>
+                <div class="modal-field">
+                    <label for="sg-rol">Rol solicitado</label>
+                    <select id="sg-rol">
+                        <option value="GESTOR 1">Gestor 1</option>
+                        <option value="GESTOR 2">Gestor 2</option>
+                    </select>
+                </div>
+                <div class="modal-field">
+                    <label for="sg-comentario">Comentario <span style="color:var(--text-muted);font-weight:400">(opcional)</span></label>
+                    <textarea id="sg-comentario" rows="3" placeholder="Informaci&oacute;n adicional relevante para el administrador..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="sg-cancel" class="btn-ghost">Cancelar</button>
+                <button id="sg-submit" class="btn-primary">Enviar solicitud</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== MODAL: Denegar solicitud de gestor ========== -->
+    <div id="denegar-gestor-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+        <div class="modal-box" style="max-width:440px">
+            <div class="modal-header">
+                <h3>Denegar solicitud de gestor</h3>
+                <button id="dg-modal-close" class="modal-close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Solicitud de gestor: <strong id="dg-nombre-display"></strong></p>
+                <div class="modal-field">
+                    <label for="dg-comentario">Motivo de denegaci&oacute;n <span style="color:var(--error,#e53e3e)">*</span></label>
+                    <textarea id="dg-comentario" rows="3" placeholder="Explica por qu&eacute; se deniega la solicitud..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="dg-cancel" class="btn-ghost">Cancelar</button>
+                <button id="dg-confirm" class="btn-danger">Confirmar denegaci&oacute;n</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== MODAL: Informe de carga / sincronización de prestadores ========== -->
+    <!-- Modal genérico de informe de carga/sincronización (prestadores y usuarios) -->
+    <div id="report-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+        <div class="modal-card modal-card-lg">
+            <div class="modal-header">
+                <h3 id="report-modal-title">Informe de carga</h3>
+                <button id="report-modal-close" class="modal-close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="report-modal-summary" style="margin-bottom:1rem"></div>
+                <div id="report-modal-list-wrap" class="hidden">
+                    <p style="font-weight:600;margin-bottom:.5rem">Registros no procesados:</p>
+                    <div style="max-height:320px;overflow-y:auto;border:1px solid var(--border,#e2e8f0);border-radius:6px">
+                        <table style="width:100%;border-collapse:collapse;font-size:.85rem">
+                            <thead>
+                                <tr style="background:var(--bg-alt,#f7fafc);position:sticky;top:0">
+                                    <th style="padding:.5rem .75rem;text-align:left;border-bottom:1px solid var(--border,#e2e8f0)" id="report-modal-col1">Identificador</th>
+                                    <th style="padding:.5rem .75rem;text-align:left;border-bottom:1px solid var(--border,#e2e8f0)">Nombre</th>
+                                    <th style="padding:.5rem .75rem;text-align:left;border-bottom:1px solid var(--border,#e2e8f0)">Motivo</th>
+                                </tr>
+                            </thead>
+                            <tbody id="report-modal-tbody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="btn-descargar-reporte-modal" class="btn-export hidden">
+                    <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+                    Descargar informe Excel
+                </button>
+                <button id="btn-cerrar-reporte-modal" class="btn-outline">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== OVERLAY: Procesando carga/sincronización ========== -->
+    <div id="processing-overlay" class="hidden" style="position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center">
+        <div style="background:#fff;border-radius:14px;padding:2rem 2.5rem;text-align:center;min-width:300px;box-shadow:0 12px 40px rgba(0,0,0,.3)">
+            <div style="width:48px;height:48px;border:4px solid #e2e8f0;border-top-color:var(--primary,#0069A7);border-radius:50%;animation:spin .75s linear infinite;margin:0 auto 1.2rem"></div>
+            <p id="processing-overlay-msg" style="font-weight:700;font-size:1rem;color:#1a202c;margin:0 0 .4rem">Procesando...</p>
+            <p style="font-size:.82rem;color:#718096;margin:0">Por favor espere hasta que finalice la operación.</p>
+        </div>
+    </div>
+
+    <script>window.BASE = "{{ root_path }}";</script>
+    <script src="{{ root_path }}/static/app.js?v=63"></script>
+</body>
+</html>
