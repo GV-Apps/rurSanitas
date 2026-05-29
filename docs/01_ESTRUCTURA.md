@@ -60,11 +60,8 @@
 │       └── index.html               ← Shell HTML de la SPA; carga app.js y style.css
 │
 ├── docker/
-│   ├── Dockerfile                   ← Imagen multi-stage Python 3.12-slim
+│   ├── Dockerfile                   ← Imagen multi-stage Python 3.12-slim (usada por CI/CD)
 │   ├── docker-compose.yml           ← Desarrollo local con PostgreSQL (opcional)
-│   ├── docker-compose.ghcr.yml      ← Producción con imagen desde GHCR (servidor propio)
-│   ├── nginx/
-│   │   └── nginx.conf               ← Proxy inverso, SSL, rate limiting, headers seguridad
 │   └── scripts/
 │       └── entrypoint.sh            ← Script de arranque del contenedor (Alembic + Gunicorn)
 │

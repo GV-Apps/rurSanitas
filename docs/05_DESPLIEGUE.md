@@ -104,6 +104,11 @@ gcloud config set project $PROJECT
 gcloud iam service-accounts create rur-app-sa \
   --display-name="RUR App — Cloud Run SA"
 
+# IMPORTANTE: esperar a que el SA se propague en IAM antes de asignar roles.
+# Si los bindings corren inmediatamente después del create, GCP devuelve:
+#   INVALID_ARGUMENT: Service account rur-app-sa@... does not exist.
+sleep 10
+
 gcloud projects add-iam-policy-binding $PROJECT \
   --member="serviceAccount:rur-app-sa@$PROJECT.iam.gserviceaccount.com" \
   --role="roles/secretmanager.secretAccessor"
@@ -111,6 +116,20 @@ gcloud projects add-iam-policy-binding $PROJECT \
 gcloud projects add-iam-policy-binding $PROJECT \
   --member="serviceAccount:rur-app-sa@$PROJECT.iam.gserviceaccount.com" \
   --role="roles/cloudsql.client"
+```
+
+> Si algún binding falla con `does not exist`, esperar unos segundos y re-ejecutar
+> solo ese comando. El SA ya existe; es un retraso de propagación de IAM.
+
+Para verificar que ambos roles quedaron aplicados:
+```bash
+gcloud projects get-iam-policy $PROJECT \
+  --flatten="bindings[].members" \
+  --filter="bindings.members:rur-app-sa@$PROJECT.iam.gserviceaccount.com" \
+  --format="table(bindings.role)"
+# Debe mostrar:
+# ROLE: roles/cloudsql.client
+# ROLE: roles/secretmanager.secretAccessor
 ```
 
 ---
@@ -130,13 +149,21 @@ gcloud projects add-iam-policy-binding $PROJECT \
 4. En **Personalizar → Conectividad**: marca **IP pública**
 5. Clic **Crear instancia** — tarda 3–5 minutos
 
-Luego crea la base de datos y anota el nombre de conexión:
+> **Usuario por defecto:** Al crear una instancia PostgreSQL en Cloud SQL, Google crea automáticamente el usuario `postgres`. No es necesario crear usuarios adicionales. La contraseña que ingresaste en el paso 3 es la contraseña de ese usuario. Para esta guía, `TU_USUARIO_BD = postgres`.
+
+Luego crea la base de datos y verifica desde Cloud Shell:
 
 ```bash
 INSTANCIA=TU_INSTANCIA   # el ID de instancia que escribiste arriba
 
+# Crear la base de datos dentro de la instancia
 gcloud sql databases create $BD --instance=$INSTANCIA
 
+# Verificar que la base de datos quedó creada
+gcloud sql databases list --instance=$INSTANCIA
+# Debe aparecer una línea con el nombre de la BD y charset UTF8
+
+# Anotar el nombre de conexión
 gcloud sql instances describe $INSTANCIA --format="value(connectionName)"
 ```
 
@@ -232,6 +259,9 @@ gcloud artifacts repositories create rur \
 # SA de CI/CD para GitHub Actions
 gcloud iam service-accounts create github-actions-sa \
   --display-name="GitHub Actions CI/CD SA"
+
+# Esperar propagación del SA antes de asignar roles (ver nota en Paso 1)
+sleep 10
 
 # Roles del SA de CI/CD
 gcloud projects add-iam-policy-binding $PROJECT \

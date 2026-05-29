@@ -24,9 +24,8 @@ en el programa RUR (Régimen Subsidiado) de EPS Sanitas (Keralty).
 | Frontend | Vanilla JavaScript (SPA sin frameworks, sin npm) |
 | BD desarrollo | SQLite (automático, sin instalación) |
 | BD producción | PostgreSQL 15+ (Google Cloud SQL) |
-| Contenedores | Docker + Docker Compose |
 | CI/CD | GitHub Actions (SAST + SCA + Tests + Trivy + cosign) |
-| Producción | Google Cloud Run (serverless) |
+| Producción | Google Cloud Run (serverless) + Cloud SQL PostgreSQL |
 | Autenticación | Sesiones firmadas + SSO Microsoft EntraID |
 
 ---
@@ -108,22 +107,6 @@ deploy-cloudrun.yml  (~4 min)
 
 ---
 
-## Despliegue en servidor propio (alternativa Docker)
-
-Si prefieres un VPS o servidor dedicado en lugar de Cloud Run, puedes usar
-Docker Compose con Nginx y certificado SSL de Let's Encrypt.
-
-Ver la sección 4 de [docs/04_MANUAL_TECNICO.md](docs/04_MANUAL_TECNICO.md).
-
-```bash
-# En el servidor (Ubuntu 22.04+)
-cd /opt/rur/docker
-docker compose -f docker-compose.ghcr.yml pull
-docker compose -f docker-compose.ghcr.yml up -d
-```
-
----
-
 ## Variables de entorno requeridas en producción
 
 | Variable | Descripción |
@@ -151,7 +134,10 @@ Para desarrollo local o servidor Docker, usar el archivo `.env.prod` (no subir a
 │   ├── routers/           ← Endpoints por dominio
 │   ├── static/            ← app.js (SPA) + style.css (Keralty Design)
 │   └── templates/         ← index.html (shell de la SPA)
-├── docker/                ← Dockerfile, docker-compose, nginx, entrypoint
+├── docker/
+│   ├── Dockerfile         ← Imagen multi-stage Python 3.12 (usada por CI/CD)
+│   ├── docker-compose.yml ← Desarrollo local con PostgreSQL (opcional)
+│   └── scripts/entrypoint.sh
 ├── migrations/            ← Migraciones Alembic
 ├── .github/workflows/     ← build-push.yml + deploy-cloudrun.yml
 ├── importar_historicos.py ← Importación masiva desde Excel
