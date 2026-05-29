@@ -892,7 +892,8 @@ def _init_db_postgres():
             f'    {_col(cod)} {_campo_sql_type(_campo_tipo_map.get(cod, "Texto"))},'
             for cod in _campo_codes
         ).rstrip(",")
-        cur.execute(f"""  # nosemgrep
+        cur.execute(  # nosemgrep
+            f"""
             CREATE TABLE registros (
                 id SERIAL PRIMARY KEY,
                 rol TEXT NOT NULL,
@@ -1350,7 +1351,8 @@ def _init_db_sqlite():
             for cod in _campo_codes
         )
         col_defs = col_defs.rstrip(",")
-        db.execute(f"""  # nosemgrep
+        db.execute(  # nosemgrep
+            f"""
             CREATE TABLE registros (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 rol TEXT NOT NULL,
