@@ -192,8 +192,8 @@ def api_crear_usuario(body: dict = Body(...), db=Depends(get_db),
         """INSERT INTO usuarios
            (usuario, password_hash, nombre_completo, cedula, cargo, correo, regional,
             perm_gestor_1, perm_gestor_2, perm_lider, perm_contralor,
-            is_admin, superior_inmediato, activo)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            is_admin, superior_inmediato, activo, local_auth_enabled)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (usuario, hash_password(password), nombre,
          body.get("cedula") or None, body.get("cargo") or None,
          body.get("correo") or None, body.get("regional") or None,
@@ -203,7 +203,8 @@ def api_crear_usuario(body: dict = Body(...), db=Depends(get_db),
          1 if body.get("perm_contralor") else 0,
          1 if body.get("is_admin") else 0,
          body.get("superior_inmediato") or None,
-         1 if body.get("activo", True) else 0),
+         1 if body.get("activo", True) else 0,
+         1 if body.get("local_auth_enabled", True) else 0),
     )
     db.commit()
     return {"mensaje": "Usuario creado exitosamente"}
