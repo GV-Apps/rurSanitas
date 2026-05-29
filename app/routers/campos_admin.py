@@ -1,4 +1,6 @@
 """routers/campos_admin.py — Administración de campos del formulario (solo ADMIN)."""
+import re
+
 from fastapi import APIRouter, Body, Depends, HTTPException
 from fastapi.responses import JSONResponse
 
@@ -9,6 +11,18 @@ from app.database import get_db
 router = APIRouter()
 
 _ROLES_VALIDOS = {"GESTOR 1", "GESTOR 2", "LIDER", "CONTRALOR", "ADMIN"}
+
+# CWE-89 / F-15: códigos de campo usados en DDL dinámico — validación estricta
+_CODIGO_RE = re.compile(r'^[A-Z]{1,3}[0-9]{0,2}$')
+
+
+def _validate_codigo(codigo: str) -> None:
+    """Valida que el código de campo sea alfanumérico seguro para usar en DDL."""
+    if not _CODIGO_RE.match(codigo):
+        raise HTTPException(
+            status_code=400,
+            detail="El código solo puede contener letras mayúsculas y opcionalmente dígitos (ej: A, AB, FX, A1). Máx 5 caracteres.",
+        )
 
 
 def _campo_row_to_dict(row) -> dict:
@@ -74,6 +88,7 @@ def api_admin_campos_create(
 
     if not codigo:
         raise HTTPException(status_code=400, detail="El código es requerido")
+    _validate_codigo(codigo)
     if not nombre:
         raise HTTPException(status_code=400, detail="El nombre es requerido")
     if not rol:
