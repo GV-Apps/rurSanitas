@@ -97,13 +97,13 @@ jobs:
           AZURE_CLIENT_SECRET=RUR_AZURE_CLIENT_SECRET:latest,\
           AZURE_TENANT_ID=RUR_AZURE_TENANT_ID:latest,\
           AZURE_REDIRECT_URI=RUR_AZURE_REDIRECT_URI:latest" \
-            --set-env-vars="DEBUG=false,TZ=America/Bogota,GUNICORN_WORKERS=2" \
+            --set-env-vars="DEBUG=false,TZ=America/Bogota,GUNICORN_WORKERS=4" \
             --add-cloudsql-instances="$CLOUD_SQL_INSTANCE" \
             --allow-unauthenticated \
-            --min-instances=1 \
+            --min-instances=2 \
             --max-instances=10 \
-            --memory=512Mi \
-            --cpu=1 \
+            --memory=1Gi \
+            --cpu=2 \
             --port=8000 \
             --quiet
 
