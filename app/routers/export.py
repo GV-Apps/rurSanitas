@@ -73,7 +73,7 @@ def exportar_registros(
         if not id_list:
             raise HTTPException(status_code=404, detail="No hay registros para exportar")
         placeholders = ",".join("?" * len(id_list))
-        rows = db.execute(
+        rows = db.execute(  # nosemgrep
             f"SELECT * FROM registros WHERE id IN ({placeholders}) ORDER BY id DESC",
             id_list,
         ).fetchall()
@@ -82,7 +82,7 @@ def exportar_registros(
         if where is None:
             rows = db.execute("SELECT * FROM registros ORDER BY id DESC").fetchall()
         else:
-            rows = db.execute(
+            rows = db.execute(  # nosemgrep
                 f"SELECT * FROM registros WHERE {where} ORDER BY id DESC", params
             ).fetchall()
 

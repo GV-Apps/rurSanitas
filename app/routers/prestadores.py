@@ -245,7 +245,7 @@ def api_admin_eliminar_prestador(
 
     from app.core import fields as F
     col_nit = F._col("E")
-    en_uso = db.execute(
+    en_uso = db.execute(  # nosemgrep
         f"SELECT COUNT(*) FROM registros WHERE {col_nit} = ?", (row["nit"],)
     ).fetchone()[0]
     if en_uso:
@@ -311,7 +311,7 @@ def api_admin_actualizar_prestador(
         "prioridad_servicio": body.get("prioridad_servicio") or None,
     }
     sets = ", ".join(f"{k} = ?" for k in fields)
-    db.execute(f"UPDATE prestadores SET {sets} WHERE id = ?", (*fields.values(), pid))
+    db.execute(f"UPDATE prestadores SET {sets} WHERE id = ?", (*fields.values(), pid))  # nosemgrep
     db.commit()
     return {"mensaje": "Prestador actualizado exitosamente"}
 

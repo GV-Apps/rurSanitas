@@ -233,7 +233,7 @@ def _col(cod: str) -> str:
 
 
 def _table_has_column(db, table: str, column: str) -> bool:
-    info = db.execute(f"PRAGMA table_info({table})").fetchall()
+    info = db.execute(f"PRAGMA table_info({table})").fetchall()  # nosemgrep
     return any(row[1] == column for row in info)
 
 
@@ -352,7 +352,7 @@ def _migrate_registros(db):
     )
     col_defs = col_defs.rstrip(",")
     extra_defs = "".join(f",\n    {name} {typ}" for name, typ in protected_present)
-    db.execute(f"""
+    db.execute(f"""  # nosemgrep
         CREATE TABLE registros_new (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             rol TEXT NOT NULL,

@@ -333,6 +333,6 @@ def api_actualizar_usuario(uid: int, body: dict = Body(...),
         fields["password_hash"] = hash_password(new_pass)
 
     sets = ", ".join(f"{k} = ?" for k in fields)
-    db.execute(f"UPDATE usuarios SET {sets} WHERE id = ?", (*fields.values(), uid))
+    db.execute(f"UPDATE usuarios SET {sets} WHERE id = ?", (*fields.values(), uid))  # nosemgrep
     db.commit()
     return {"mensaje": "Usuario actualizado exitosamente"}

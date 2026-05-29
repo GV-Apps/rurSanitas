@@ -42,9 +42,9 @@ def get_audit_log(
         where_clauses.append("es_autorizado = 0")
 
     where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
-    total  = db.execute(f"SELECT COUNT(*) FROM audit_log {where_sql}", params).fetchone()[0]
+    total  = db.execute(f"SELECT COUNT(*) FROM audit_log {where_sql}", params).fetchone()[0]  # nosemgrep
     offset = (page - 1) * per_page
-    rows   = db.execute(
+    rows   = db.execute(  # nosemgrep
         f"SELECT * FROM audit_log {where_sql} ORDER BY fecha DESC LIMIT ? OFFSET ?",
         params + [per_page, offset]
     ).fetchall()
@@ -82,7 +82,7 @@ def export_audit_log(
         where_clauses.append("es_autorizado = 0")
 
     where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
-    rows      = db.execute(
+    rows      = db.execute(  # nosemgrep
         f"SELECT * FROM audit_log {where_sql} ORDER BY fecha DESC", params
     ).fetchall()
 

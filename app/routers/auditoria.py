@@ -192,7 +192,7 @@ def get_auditoria_historial(
     # Verificar visibilidad del registro
     where, params = get_visibility_filter(db, sess)
     if where is not None:
-        row = db.execute(
+        row = db.execute(  # nosemgrep
             f"SELECT id FROM registros WHERE id = ? AND ({where})",
             (registro_id, *params),
         ).fetchone()

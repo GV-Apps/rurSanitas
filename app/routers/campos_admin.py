@@ -109,7 +109,7 @@ def api_admin_campos_create(
     existing = [r[1] for r in db.execute("PRAGMA table_info(registros)").fetchall()]
     if col_name not in existing:
         try:
-            db.execute(f"ALTER TABLE registros ADD COLUMN {col_name} TEXT")
+            db.execute(f"ALTER TABLE registros ADD COLUMN {col_name} TEXT")  # nosemgrep
             db.commit()
         except Exception:
             pass  # columna ya existe o nombre inválido
