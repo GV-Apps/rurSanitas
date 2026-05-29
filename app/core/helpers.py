@@ -1292,8 +1292,8 @@ def _init_db_postgres():
             """INSERT INTO usuarios
                (usuario, password_hash, nombre_completo, cargo,
                 perm_gestor_1, perm_gestor_2, perm_lider, perm_contralor,
-                is_admin, activo)
-               VALUES (%s, %s, 'Administrador General', 'Otro', 0, 0, 0, 0, 1, 1)""",
+                is_admin, activo, local_auth_enabled)
+               VALUES (%s, %s, 'Administrador General', 'Otro', 0, 0, 0, 0, 1, 1, 1)""",
             ("admin", hash_password(_admin_pass)),
         )
 
@@ -1791,8 +1791,8 @@ def _init_db_sqlite():
             """INSERT INTO usuarios
                (usuario, password_hash, nombre_completo, cargo,
                 perm_gestor_1, perm_gestor_2, perm_lider, perm_contralor,
-                is_admin, activo)
-               VALUES (?, ?, 'Administrador General', 'Otro', 0, 0, 0, 0, 1, 1)""",
+                is_admin, activo, local_auth_enabled)
+               VALUES (?, ?, 'Administrador General', 'Otro', 0, 0, 0, 0, 1, 1, 1)""",
             ("admin", hash_password(_admin_pass)),
         )
         db.commit()
