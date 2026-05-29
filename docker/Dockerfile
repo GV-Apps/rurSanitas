@@ -1,5 +1,5 @@
 # ── Stage 1: build dependencies ──────────────────────────────────────────
-FROM python:3.11-slim AS builder
+FROM python:3.12-slim AS builder
 
 WORKDIR /build
 
@@ -14,7 +14,7 @@ RUN pip install --upgrade pip && \
 
 
 # ── Stage 2: runtime image ────────────────────────────────────────────────
-FROM python:3.11-slim
+FROM python:3.12-slim
 
 # Zona horaria Colombia / Ecuador (UTC-5, sin horario de verano)
 ENV TZ=America/Bogota
@@ -23,8 +23,8 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-# Runtime deps only (libpq para psycopg2, tzdata para zona horaria)
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# Runtime deps + parches de seguridad del OS
+RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
         libpq5 \
         tzdata \
     && rm -rf /var/lib/apt/lists/*
